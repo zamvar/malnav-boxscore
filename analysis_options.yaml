@@ -1,0 +1,12 @@
+analyzer:
+  errors:
+    strict_raw_type: ignore
+    omit_local_variable_types: ignore
+    lines_longer_than_80_chars: ignore
+    avoid_redundant_argument_values: ignore
+    noop_primitive_operations: ignore
+    avoid_equals_and_hash_code_on_mutable_classes: ignore
+include: package:very_good_analysis/analysis_options.6.0.0.yaml
+linter:
+  rules:
+    public_member_api_docs: false
