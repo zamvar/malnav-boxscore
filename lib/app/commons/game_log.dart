@@ -1,8 +1,7 @@
 // ignore_for_file: no_default_cases, use_if_null_to_convert_nulls_to_bools, prefer_int_literals, unnecessary_raw_strings
 
 import 'package:flutter/material.dart';
-import 'package:score_board/app/features/game/view/game.dart';
-
+import 'package:score_board/app/commons/models/player_model.dart';
 
 enum PrimaryAction {
   shotAttempt,
@@ -26,6 +25,10 @@ enum SubstitutionStep { direction, playerSelect }
 
 // Main Modal Widget
 class GameLogEntryModal extends StatefulWidget {
+
+  const GameLogEntryModal({
+    required this.playerInFocus, required this.gameQuarter, required this.gameClock, required this.playerInFocusTeamRoster, required this.opponentTeamRoster, required this.allPlayersOnCourt, required this.onLogConfirm, super.key,
+  });
   final Player playerInFocus;
   final String gameQuarter;
   final String gameClock;
@@ -36,17 +39,6 @@ class GameLogEntryModal extends StatefulWidget {
   // List of all players currently on the court (from both teams)
   final List<Player> allPlayersOnCourt;
   final Function(Map<String, dynamic> logData) onLogConfirm;
-
-  const GameLogEntryModal({
-    super.key,
-    required this.playerInFocus,
-    required this.gameQuarter,
-    required this.gameClock,
-    required this.playerInFocusTeamRoster,
-    required this.opponentTeamRoster,
-    required this.allPlayersOnCourt,
-    required this.onLogConfirm,
-  });
 
   @override
   State<GameLogEntryModal> createState() => _GameLogEntryModalState();
@@ -175,48 +167,56 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
         'icon': Icons.timer_outlined,
       },
     ];
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: 2,
-          childAspectRatio: 2.7,
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,),
-      itemCount: actions.length,
-      itemBuilder: (context, index) {
-        final item = actions[index];
+    return Wrap(
+      spacing: 10.0, // Horizontal space between items
+      runSpacing: 10.0, // Vertical space between lines/runs
+      alignment: WrapAlignment.center,
+      children: actions.map((item) {
         return ElevatedButton.icon(
           icon: Icon(item['icon'] as IconData?, size: 18),
           label: Text(item['label']! as String),
           onPressed: () =>
               _selectPrimaryAction(item['action']! as PrimaryAction),
           style: ElevatedButton.styleFrom(
-              textStyle: const TextStyle(fontSize: 13),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              alignment: Alignment.centerLeft,),
+            minimumSize:
+                const Size(130, 40), // Ensure buttons have a decent tap target
+            textStyle: const TextStyle(fontSize: 13),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            // alignment: Alignment.centerLeft // This might make buttons uneven if text length varies
+          ),
         );
-      },
+      }).toList(),
     );
   }
 
-  Widget _buildPlayerSelector(String title, List<Player> players,
-      Player? selectedPlayer, ValueChanged<Player?> onChanged,
-      {String? hint, bool allowNone = false,}) {
+  Widget _buildPlayerSelector(
+    String title,
+    List<Player> players,
+    Player? selectedPlayer,
+    ValueChanged<Player?> onChanged, {
+    String? hint,
+    bool allowNone = false,
+  }) {
     final List<DropdownMenuItem<Player>> items = players
-        .map((player) => DropdownMenuItem(
+        .map(
+          (player) => DropdownMenuItem(
             value: player,
-            child: Text(player.toString(), overflow: TextOverflow.ellipsis),),)
+            child: Text(player.toString(), overflow: TextOverflow.ellipsis),
+          ),
+        )
         .toList();
     if (allowNone) {
       items.insert(
-          0, DropdownMenuItem(value: null, child: Text(hint ?? 'None')),);
+        0,
+        DropdownMenuItem(value: null, child: Text(hint ?? 'None')),
+      );
     }
     return DropdownButtonFormField<Player>(
       decoration: InputDecoration(
-          labelText: title,
-          border: const OutlineInputBorder(),
-          hintText: hint ?? 'Select...',),
+        labelText: title,
+        border: const OutlineInputBorder(),
+        hintText: hint ?? 'Select...',
+      ),
       value: selectedPlayer,
       items: items,
       onChanged: onChanged,
@@ -226,67 +226,91 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
 
   Widget _buildShotAttemptDetails() {
     if (_shotAttemptStep == ShotAttemptStep.type) {
-      return Column(children: [
-        const Text('Shot Point Type:',
-            style: TextStyle(fontWeight: FontWeight.bold),),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          ElevatedButton(
-              child: const Text('2-Point'),
-              onPressed: () => setState(() {
-                    _saPointType = '2PT';
-                    _shotAttemptStep = ShotAttemptStep.outcome;
-                  }),),
-          ElevatedButton(
-              child: const Text('3-Point'),
-              onPressed: () => setState(() {
-                    _saPointType = '3PT';
-                    _shotAttemptStep = ShotAttemptStep.outcome;
-                  }),),
-        ],),
-      ],);
+      return Column(
+        children: [
+          const Text(
+            'Shot Point Type:',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                child: const Text('2-Point'),
+                onPressed: () => setState(() {
+                  _saPointType = '2PT';
+                  _shotAttemptStep = ShotAttemptStep.outcome;
+                }),
+              ),
+              ElevatedButton(
+                child: const Text('3-Point'),
+                onPressed: () => setState(() {
+                  _saPointType = '3PT';
+                  _shotAttemptStep = ShotAttemptStep.outcome;
+                }),
+              ),
+            ],
+          ),
+        ],
+      );
     } else if (_shotAttemptStep == ShotAttemptStep.outcome) {
-      return Column(children: [
-        Text('Outcome for $_saPointType:',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          ElevatedButton(
-              child: Text('MADE (${_saPointType == "2PT" ? 2 : 3} PTS)'),
-              onPressed: () => setState(() {
-                    _saOutcome = 'MADE';
-                    _shotAttemptStep = ShotAttemptStep.details;
-                  }),),
-          ElevatedButton(
-              child: const Text('MISSED'),
-              onPressed: () => setState(() {
-                    _saOutcome = 'MISSED';
-                    _shotAttemptStep = ShotAttemptStep.details;
-                  }),),
-        ],),
-        TextButton(
+      return Column(
+        children: [
+          Text(
+            'Outcome for $_saPointType:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                child: Text('MADE (${_saPointType == "2PT" ? 2 : 3} PTS)'),
+                onPressed: () => setState(() {
+                  _saOutcome = 'MADE';
+                  _shotAttemptStep = ShotAttemptStep.details;
+                }),
+              ),
+              ElevatedButton(
+                child: const Text('MISSED'),
+                onPressed: () => setState(() {
+                  _saOutcome = 'MISSED';
+                  _shotAttemptStep = ShotAttemptStep.details;
+                }),
+              ),
+            ],
+          ),
+          TextButton(
             onPressed: () =>
                 setState(() => _shotAttemptStep = ShotAttemptStep.type),
-            child: const Text('Back to Shot Type'),),
-      ],);
+            child: const Text('Back to Shot Type'),
+          ),
+        ],
+      );
     } else if (_shotAttemptStep == ShotAttemptStep.details) {
       final List<String> shotDetailsOptions = (_saPointType == '2PT')
           ? ['Layup', 'Jumpshot', 'Dunk', 'Tip-in', 'Other']
-          : ['Catch & Shoot 3', 'Pull-up 3', 'Other 3'];
-      return Column(children: [
-        Text('Details for $_saPointType $_saOutcome:',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(
-              labelText: 'Specific Shot Detail', border: OutlineInputBorder(),),
-          value: _saDetailType,
-          items: shotDetailsOptions
-              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-              .toList(),
-          onChanged: (val) => setState(() => _saDetailType = val),
-          validator: (val) => val == null ? 'Select shot detail' : null,
-        ),
-        if (_saOutcome == 'MADE') ...[
-          const SizedBox(height: 10),
-          _buildPlayerSelector(
+          : ['Catch & Shoot', 'Pull-up', 'Corner', 'Step-back'];
+      return Column(
+        children: [
+          Text(
+            'Details for $_saPointType $_saOutcome:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Specific Shot Detail',
+              border: OutlineInputBorder(),
+            ),
+            value: _saDetailType,
+            items: shotDetailsOptions
+                .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                .toList(),
+            onChanged: (val) => setState(() => _saDetailType = val),
+            validator: (val) => val == null ? 'Select shot detail' : null,
+          ),
+          if (_saOutcome == 'MADE') ...[
+            const SizedBox(height: 10),
+            _buildPlayerSelector(
               'Assisted By (Optional)',
               widget.playerInFocusTeamRoster
                   .where((p) => p.id != widget.playerInFocus.id)
@@ -294,23 +318,27 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
               _saAssistingPlayer,
               (p) => setState(() => _saAssistingPlayer = p),
               allowNone: true,
-              hint: 'None (Unassisted)',),
-        ],
-        if (_saOutcome == 'MISSED') ...[
-          const SizedBox(height: 10),
-          _buildPlayerSelector(
+              hint: 'None (Unassisted)',
+            ),
+          ],
+          if (_saOutcome == 'MISSED') ...[
+            const SizedBox(height: 10),
+            _buildPlayerSelector(
               'Blocked By (Optional)',
               widget.opponentTeamRoster,
               _saBlockingPlayer,
               (p) => setState(() => _saBlockingPlayer = p),
               allowNone: true,
-              hint: 'None (Not Blocked)',),
-        ],
-        TextButton(
+              hint: 'None (Not Blocked)',
+            ),
+          ],
+          TextButton(
             onPressed: () =>
                 setState(() => _shotAttemptStep = ShotAttemptStep.outcome),
-            child: const Text('Back to Outcome'),),
-      ],);
+            child: const Text('Back to Outcome'),
+          ),
+        ],
+      );
     }
     return const SizedBox.shrink();
   }
@@ -324,123 +352,168 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
       'Flagrant 2',
     ];
     if (_foulCommittedStep == FoulCommittedStep.type) {
-      return Column(children: [
-        const Text('Foul Type:', style: TextStyle(fontWeight: FontWeight.bold)),
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(
-              labelText: 'Select Foul Type', border: OutlineInputBorder(),),
-          value: _fcType,
-          items: foulTypes
-              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-              .toList(),
-          onChanged: (val) => setState(() {
-            _fcType = val;
-            _foulCommittedStep = FoulCommittedStep.details;
-          }),
-          validator: (val) => val == null ? 'Select foul type' : null,
-        ),
-      ],);
+      return Column(
+        children: [
+          const Text('Foul Type:',
+              style: TextStyle(fontWeight: FontWeight.bold),),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Select Foul Type',
+              border: OutlineInputBorder(),
+            ),
+            value: _fcType,
+            items: foulTypes
+                .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                .toList(),
+            onChanged: (val) => setState(() {
+              _fcType = val;
+              _foulCommittedStep = FoulCommittedStep.details;
+            }),
+            validator: (val) => val == null ? 'Select foul type' : null,
+          ),
+        ],
+      );
     } else if (_foulCommittedStep == FoulCommittedStep.details) {
       final List<Player> possibleFouledPlayers = widget.allPlayersOnCourt
           .where((p) => p.id != widget.playerInFocus.id)
           .toList();
 
-      return Column(children: [
-        Text('Details for $_fcType Foul:',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
-        _buildPlayerSelector('Fouled Player (Optional)', possibleFouledPlayers,
-            _fcFouledPlayer, (p) => setState(() => _fcFouledPlayer = p),
-            allowNone: true, hint: 'No specific player / Non-contact',),
-        if (_fcType == 'Personal' ||
-            _fcType == 'Flagrant 1' ||
-            _fcType == 'Flagrant 2') ...[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Text('Shooting Foul?'),
-              Switch(
-                  value: _fcIsShootingFoul,
-                  onChanged: (val) => setState(() => _fcIsShootingFoul = val),),
-            ],
+      return Column(
+        children: [
+          Text(
+            'Details for $_fcType Foul:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
           ),
-          if (_fcIsShootingFoul)
-            DropdownButtonFormField<int>(
-              decoration: const InputDecoration(
-                  labelText: 'FTs Awarded', border: OutlineInputBorder(),),
-              value: _fcFtsAwarded,
-              items: [1, 2, 3]
-                  .map((n) => DropdownMenuItem(
-                      value: n, child: Text('$n FT${n > 1 ? "s" : ""}'),),)
-                  .toList(),
-              onChanged: (val) => setState(() => _fcFtsAwarded = val),
-              validator: (val) => _fcIsShootingFoul && val == null
-                  ? 'Select FTs awarded'
-                  : null,
+          _buildPlayerSelector(
+            'Fouled Player (Optional)',
+            possibleFouledPlayers,
+            _fcFouledPlayer,
+            (p) => setState(() => _fcFouledPlayer = p),
+            allowNone: true,
+            hint: 'No specific player / Non-contact',
+          ),
+          if (_fcType == 'Personal' ||
+              _fcType == 'Flagrant 1' ||
+              _fcType == 'Flagrant 2') ...[
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Text('Shooting Foul?'),
+                Switch(
+                  value: _fcIsShootingFoul,
+                  onChanged: (val) => setState(() => _fcIsShootingFoul = val),
+                ),
+              ],
             ),
-        ],
-        TextButton(
+            if (_fcIsShootingFoul)
+              DropdownButtonFormField<int>(
+                decoration: const InputDecoration(
+                  labelText: 'FTs Awarded',
+                  border: OutlineInputBorder(),
+                ),
+                value: _fcFtsAwarded,
+                items: [1, 2, 3]
+                    .map(
+                      (n) => DropdownMenuItem(
+                        value: n,
+                        child: Text('$n FT${n > 1 ? "s" : ""}'),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (val) => setState(() => _fcFtsAwarded = val),
+                validator: (val) => _fcIsShootingFoul && val == null
+                    ? 'Select FTs awarded'
+                    : null,
+              ),
+          ],
+          TextButton(
             onPressed: () =>
                 setState(() => _foulCommittedStep = FoulCommittedStep.type),
-            child: const Text('Back to Foul Type'),),
-      ],);
+            child: const Text('Back to Foul Type'),
+          ),
+        ],
+      );
     }
     return const SizedBox.shrink();
   }
 
   Widget _buildFreeThrowDetails() {
-    return Column(children: [
-      Text('Free Throw for ${widget.playerInFocus.name}',
-          style: const TextStyle(fontWeight: FontWeight.bold),),
-      Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-        const Text('Attempt: '),
-        SizedBox(
-            width: 50,
-            child: TextField(
-              controller:
-                  TextEditingController(text: _ftAttemptNumber.toString()),
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              onChanged: (val) => _ftAttemptNumber = int.tryParse(val) ?? 1,
-            ),),
-        const Text(' of '),
-        SizedBox(
-            width: 50,
-            child: TextField(
-              controller:
-                  TextEditingController(text: _ftTotalAttempts.toString()),
-              keyboardType: TextInputType.number,
-              textAlign: TextAlign.center,
-              onChanged: (val) => _ftTotalAttempts = int.tryParse(val) ?? 1,
-            ),),
-      ],),
-      const SizedBox(height: 10),
-      const Text('Outcome:'),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-        ElevatedButton(
-            child: const Text('MADE (1 PT)'),
-            onPressed: () => setState(() => _ftIsMade = true),),
-        ElevatedButton(
-            child: const Text('MISSED'),
-            onPressed: () => setState(() => _ftIsMade = false),),
-      ],),
-    ],);
+    return Column(
+      children: [
+        Text(
+          'Free Throw for ${widget.playerInFocus.name}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('Attempt: '),
+            SizedBox(
+              width: 50,
+              child: TextField(
+                controller:
+                    TextEditingController(text: _ftAttemptNumber.toString()),
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                onChanged: (val) => _ftAttemptNumber = int.tryParse(val) ?? 1,
+              ),
+            ),
+            const Text(' of '),
+            SizedBox(
+              width: 50,
+              child: TextField(
+                controller:
+                    TextEditingController(text: _ftTotalAttempts.toString()),
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                onChanged: (val) => _ftTotalAttempts = int.tryParse(val) ?? 1,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        const Text('Outcome:'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton(
+              child: const Text('MADE (1 PT)'),
+              onPressed: () => setState(() => _ftIsMade = true),
+            ),
+            ElevatedButton(
+              child: const Text('MISSED'),
+              onPressed: () => setState(() => _ftIsMade = false),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildReboundDetails() {
-    return Column(children: [
-      Text('Rebound by ${widget.playerInFocus.name}',
-          style: const TextStyle(fontWeight: FontWeight.bold),),
-      const SizedBox(height: 10),
-      const Text('Rebound Type:'),
-      Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-        ElevatedButton(
-            child: const Text('Offensive'),
-            onPressed: () => setState(() => _rbType = 'OFFENSIVE'),),
-        ElevatedButton(
-            child: const Text('Defensive'),
-            onPressed: () => setState(() => _rbType = 'DEFENSIVE'),),
-      ],),
-    ],);
+    return Column(
+      children: [
+        Text(
+          'Rebound by ${widget.playerInFocus.name}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 10),
+        const Text('Rebound Type:'),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            ElevatedButton(
+              child: const Text('Offensive'),
+              onPressed: () => setState(() => _rbType = 'OFFENSIVE'),
+            ),
+            ElevatedButton(
+              child: const Text('Defensive'),
+              onPressed: () => setState(() => _rbType = 'DEFENSIVE'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   Widget _buildTurnoverDetails() {
@@ -456,58 +529,83 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
       'Other',
     ];
     if (_turnoverStep == TurnoverStep.type) {
-      return Column(children: [
-        Text('Turnover by ${widget.playerInFocus.name}:',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
-        DropdownButtonFormField<String>(
-          decoration: const InputDecoration(
-              labelText: 'Select Turnover Type', border: OutlineInputBorder(),),
-          value: _toType,
-          items: turnoverTypes
-              .map((type) => DropdownMenuItem(value: type, child: Text(type)))
-              .toList(),
-          onChanged: (val) => setState(() {
-            _toType = val;
-            _turnoverStep = TurnoverStep.details;
-          }),
-          validator: (val) => val == null ? 'Select turnover type' : null,
-        ),
-      ],);
+      return Column(
+        children: [
+          Text(
+            'Turnover by ${widget.playerInFocus.name}:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          DropdownButtonFormField<String>(
+            decoration: const InputDecoration(
+              labelText: 'Select Turnover Type',
+              border: OutlineInputBorder(),
+            ),
+            value: _toType,
+            items: turnoverTypes
+                .map((type) => DropdownMenuItem(value: type, child: Text(type)))
+                .toList(),
+            onChanged: (val) => setState(() {
+              _toType = val;
+              _turnoverStep = TurnoverStep.details;
+            }),
+            validator: (val) => val == null ? 'Select turnover type' : null,
+          ),
+        ],
+      );
     } else if (_turnoverStep == TurnoverStep.details) {
-      return Column(children: [
-        Text('Details for $_toType:',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
-        _buildPlayerSelector('Stolen By (Optional)', widget.opponentTeamRoster,
-            _toStolenByPlayer, (p) => setState(() => _toStolenByPlayer = p),
-            allowNone: true, hint: 'None (Not Stolen)',),
-        TextButton(
+      return Column(
+        children: [
+          Text(
+            'Details for $_toType:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          _buildPlayerSelector(
+            'Stolen By (Optional)',
+            widget.opponentTeamRoster,
+            _toStolenByPlayer,
+            (p) => setState(() => _toStolenByPlayer = p),
+            allowNone: true,
+            hint: 'None (Not Stolen)',
+          ),
+          TextButton(
             onPressed: () => setState(() => _turnoverStep = TurnoverStep.type),
-            child: const Text('Back to Turnover Type'),),
-      ],);
+            child: const Text('Back to Turnover Type'),
+          ),
+        ],
+      );
     }
     return const SizedBox.shrink();
   }
 
   Widget _buildSubstitutionDetails() {
     if (_substitutionStep == SubstitutionStep.direction) {
-      return Column(children: [
-        Text('Substitution for ${widget.playerInFocus.name}:',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
-        Row(mainAxisAlignment: MainAxisAlignment.spaceEvenly, children: [
-          ElevatedButton(
-              child: const Text('Player ENTERING'),
-              onPressed: () => setState(() {
-                    _subDirection = 'IN';
-                    _substitutionStep = SubstitutionStep.playerSelect;
-                  }),),
-          ElevatedButton(
-              child: const Text('Player LEAVING'),
-              onPressed: () => setState(() {
-                    _subDirection = 'OUT';
-                    _substitutionStep = SubstitutionStep.playerSelect;
-                  }),),
-        ],),
-      ],);
+      return Column(
+        children: [
+          Text(
+            'Substitution for ${widget.playerInFocus.name}:',
+            style: const TextStyle(fontWeight: FontWeight.bold),
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              ElevatedButton(
+                child: const Text('Player ENTERING'),
+                onPressed: () => setState(() {
+                  _subDirection = 'IN';
+                  _substitutionStep = SubstitutionStep.playerSelect;
+                }),
+              ),
+              ElevatedButton(
+                child: const Text('Player LEAVING'),
+                onPressed: () => setState(() {
+                  _subDirection = 'OUT';
+                  _substitutionStep = SubstitutionStep.playerSelect;
+                }),
+              ),
+            ],
+          ),
+        ],
+      );
     } else if (_substitutionStep == SubstitutionStep.playerSelect) {
       final String title = _subDirection == 'IN'
           ? 'Replacing Whom (On Court)?'
@@ -516,28 +614,40 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
 
       if (_subDirection == 'IN') {
         selectablePlayers = widget.playerInFocusTeamRoster
-            .where((p) =>
-                p.id != widget.playerInFocus.id &&
-                widget.allPlayersOnCourt.any((onCourt) =>
-                    onCourt.id == p.id &&
-                    onCourt.teamId == widget.playerInFocus.teamId,),)
+            .where(
+              (p) =>
+                  p.id != widget.playerInFocus.id &&
+                  widget.allPlayersOnCourt.any(
+                    (onCourt) =>
+                        onCourt.id == p.id &&
+                        onCourt.teamId == widget.playerInFocus.teamId,
+                  ),
+            )
             .toList();
       } else {
         selectablePlayers = widget.playerInFocusTeamRoster
-            .where((p) =>
-                p.id != widget.playerInFocus.id &&
-                !widget.allPlayersOnCourt.any((onCourt) =>
-                    onCourt.id == p.id &&
-                    onCourt.teamId == widget.playerInFocus.teamId,),)
+            .where(
+              (p) =>
+                  p.id != widget.playerInFocus.id &&
+                  !widget.allPlayersOnCourt.any(
+                    (onCourt) =>
+                        onCourt.id == p.id &&
+                        onCourt.teamId == widget.playerInFocus.teamId,
+                  ),
+            )
             .toList();
       }
 
       return Column(
         children: [
           Text(title, style: const TextStyle(fontWeight: FontWeight.bold)),
-          _buildPlayerSelector('Select Player', selectablePlayers,
-              _subOtherPlayer, (p) => setState(() => _subOtherPlayer = p),
-              hint: 'Select Teammate',),
+          _buildPlayerSelector(
+            'Select Player',
+            selectablePlayers,
+            _subOtherPlayer,
+            (p) => setState(() => _subOtherPlayer = p),
+            hint: 'Select Teammate',
+          ),
           TextButton(
             onPressed: () => setState(
               () => _substitutionStep = SubstitutionStep.direction,
@@ -553,8 +663,10 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
   Widget _buildTimeoutDetails() {
     return Column(
       children: [
-        Text('Timeout called by ${widget.playerInFocus.teamId}',
-            style: const TextStyle(fontWeight: FontWeight.bold),),
+        Text(
+          'Timeout called by ${widget.playerInFocus.teamId}',
+          style: const TextStyle(fontWeight: FontWeight.bold),
+        ),
         const SizedBox(height: 10),
         const Text('Confirm timeout? (Further details like type can be added)'),
       ],
@@ -580,9 +692,11 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
       default:
         return const Padding(
           padding: EdgeInsets.symmetric(vertical: 16.0),
-          child: Text('Select an action above to add details.',
-              textAlign: TextAlign.center,
-              style: TextStyle(fontStyle: FontStyle.italic),),
+          child: Text(
+            'Select an action above to add details.',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontStyle: FontStyle.italic),
+          ),
         );
     }
   }
@@ -723,7 +837,8 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
 
     return AlertDialog(
       title: Text(
-          'Log Event for ${widget.playerInFocus.name} (#${widget.playerInFocus.jerseyNumber})',),
+        'Log Event for ${widget.playerInFocus.name} (#${widget.playerInFocus.jerseyNumber})',
+      ),
       scrollable: true,
       content: SizedBox(
         width: MediaQuery.of(context).size.width < 500
@@ -733,8 +848,10 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Text('Quarter: ${widget.gameQuarter} | Clock: ${widget.gameClock}',
-                style: Theme.of(context).textTheme.bodySmall,),
+            Text(
+              'Quarter: ${widget.gameQuarter} | Clock: ${widget.gameClock}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const Divider(height: 20),
             if (_selectedPrimaryAction == null)
               _buildPrimaryActionButtons()
@@ -744,25 +861,28 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
                 children: [
                   Expanded(
                     child: Text(
-                        _selectedPrimaryAction
-                            .toString()
-                            .split('.')
-                            .last
-                            .replaceAllMapped(
-                              RegExp(r'[A-Z]'),
-                              (match) => ' ${match.group(0)}',
-                            )
-                            .trim()
-                            .capitalizeFirstLetter(),
-                        style: Theme.of(context)
-                            .textTheme
-                            .titleMedium
-                            ?.copyWith(fontWeight: FontWeight.bold),),
+                      _selectedPrimaryAction
+                          .toString()
+                          .split('.')
+                          .last
+                          .replaceAllMapped(
+                            RegExp(r'[A-Z]'),
+                            (match) => ' ${match.group(0)}',
+                          )
+                          .trim()
+                          .capitalizeFirstLetter(),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.bold),
+                    ),
                   ),
                   TextButton.icon(
                     icon: const Icon(Icons.close, size: 18, color: Colors.grey),
-                    label: const Text('Change',
-                        style: TextStyle(color: Colors.grey, fontSize: 12),),
+                    label: const Text(
+                      'Change',
+                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                    ),
                     onPressed: () => setState(() {
                       _selectedPrimaryAction = null;
                       _resetSelectionsAndLogData();
@@ -786,7 +906,8 @@ class _GameLogEntryModalState extends State<GameLogEntryModal> {
         ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(
-              backgroundColor: Theme.of(context).primaryColor,),
+            backgroundColor: Theme.of(context).primaryColor,
+          ),
           onPressed: canConfirm ? _confirmLogEntry : null,
           child:
               const Text('Confirm Log', style: TextStyle(color: Colors.white)),

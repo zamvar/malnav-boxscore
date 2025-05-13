@@ -21,7 +21,7 @@ import 'package:score_board/router/nested_route_containers.dart' as _i3;
 /// [_i1.DashboardRoute]
 class DashboardRoute extends _i6.PageRouteInfo<void> {
   const DashboardRoute({List<_i6.PageRouteInfo>? children})
-      : super(DashboardRoute.name, initialChildren: children);
+    : super(DashboardRoute.name, initialChildren: children);
 
   static const String name = 'DashboardRoute';
 
@@ -37,7 +37,7 @@ class DashboardRoute extends _i6.PageRouteInfo<void> {
 /// [_i2.GameLobbyRoute]
 class GameLobbyRoute extends _i6.PageRouteInfo<void> {
   const GameLobbyRoute({List<_i6.PageRouteInfo>? children})
-      : super(GameLobbyRoute.name, initialChildren: children);
+    : super(GameLobbyRoute.name, initialChildren: children);
 
   static const String name = 'GameLobbyRoute';
 
@@ -53,7 +53,7 @@ class GameLobbyRoute extends _i6.PageRouteInfo<void> {
 /// [_i3.ItemContainerPage]
 class ItemContainerRoute extends _i6.PageRouteInfo<void> {
   const ItemContainerRoute({List<_i6.PageRouteInfo>? children})
-      : super(ItemContainerRoute.name, initialChildren: children);
+    : super(ItemContainerRoute.name, initialChildren: children);
 
   static const String name = 'ItemContainerRoute';
 
@@ -69,7 +69,7 @@ class ItemContainerRoute extends _i6.PageRouteInfo<void> {
 /// [_i4.LoginRoute]
 class LoginRoute extends _i6.PageRouteInfo<void> {
   const LoginRoute({List<_i6.PageRouteInfo>? children})
-      : super(LoginRoute.name, initialChildren: children);
+    : super(LoginRoute.name, initialChildren: children);
 
   static const String name = 'LoginRoute';
 
@@ -85,7 +85,7 @@ class LoginRoute extends _i6.PageRouteInfo<void> {
 /// [_i3.ProfileContainerPage]
 class ProfileContainerRoute extends _i6.PageRouteInfo<void> {
   const ProfileContainerRoute({List<_i6.PageRouteInfo>? children})
-      : super(ProfileContainerRoute.name, initialChildren: children);
+    : super(ProfileContainerRoute.name, initialChildren: children);
 
   static const String name = 'ProfileContainerRoute';
 
@@ -105,11 +105,11 @@ class ScoreboardGameRoute extends _i6.PageRouteInfo<ScoreboardGameRouteArgs> {
     _i7.Key? key,
     List<_i6.PageRouteInfo>? children,
   }) : super(
-          ScoreboardGameRoute.name,
-          args: ScoreboardGameRouteArgs(gameId: gameId, key: key),
-          rawPathParams: {'gameId': gameId},
-          initialChildren: children,
-        );
+         ScoreboardGameRoute.name,
+         args: ScoreboardGameRouteArgs(gameId: gameId, key: key),
+         rawPathParams: {'gameId': gameId},
+         initialChildren: children,
+       );
 
   static const String name = 'ScoreboardGameRoute';
 
@@ -118,8 +118,9 @@ class ScoreboardGameRoute extends _i6.PageRouteInfo<ScoreboardGameRouteArgs> {
     builder: (data) {
       final pathParams = data.inheritedPathParams;
       final args = data.argsAs<ScoreboardGameRouteArgs>(
-        orElse: () =>
-            ScoreboardGameRouteArgs(gameId: pathParams.getString('gameId')),
+        orElse:
+            () =>
+                ScoreboardGameRouteArgs(gameId: pathParams.getString('gameId')),
       );
       return _i5.ScoreboardGameRoute(gameId: args.gameId, key: args.key);
     },

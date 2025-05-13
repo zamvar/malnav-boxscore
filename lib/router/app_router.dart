@@ -28,7 +28,8 @@ class AppRouter extends RootStackRouter {
           guards: [AuthGuard()],
         ),
         AutoRoute(
-          path: '/gamelog',
+          path:
+              '/gamelog/:gameId', // UPDATED: Added :gameId as a path parameter
           page: ScoreboardGameRoute.page,
           initial: false,
           guards: [AuthGuard()],

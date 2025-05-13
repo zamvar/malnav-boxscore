@@ -23,7 +23,7 @@ class AuthGuard extends AutoRouteGuard {
 
   @override
   Future<void> onNavigation(
-      NavigationResolver resolver, StackRouter router) async {
+      NavigationResolver resolver, StackRouter router,) async {
     final String? storedToken = await _getUserToken();
     final String? storedUserId = await _getUserId();
     final User? currentFirebaseUser = _firebaseAuth.currentUser;
@@ -45,18 +45,18 @@ class AuthGuard extends AutoRouteGuard {
           // The session is no longer valid.
           // Clear stored credentials and redirect to login.
           await _secureStorage.delete(
-              key: AppConstants.userTokenKey); // Use key from LoginCubit
+              key: AppConstants.userTokenKey,); // Use key from LoginCubit
           await _secureStorage.delete(
-              key: AppConstants.userIdKey); // Use key from LoginCubit
+              key: AppConstants.userIdKey,); // Use key from LoginCubit
           // Fall through to redirect logic
         }
       } else {
         // Mismatch between stored user ID and Firebase's current user UID.
         // This indicates stale storage. Clear it and redirect.
         await _secureStorage.delete(
-            key: AppConstants.userTokenKey); // Use key from LoginCubit
+            key: AppConstants.userTokenKey,); // Use key from LoginCubit
         await _secureStorage.delete(
-            key: AppConstants.userIdKey); // Use key from LoginCubit
+            key: AppConstants.userIdKey,); // Use key from LoginCubit
         // Fall through to redirect logic
       }
     } else {
@@ -65,9 +65,9 @@ class AuthGuard extends AutoRouteGuard {
       // If there's any partial data, clear it to be safe.
       if (storedToken != null || storedUserId != null) {
         await _secureStorage.delete(
-            key: AppConstants.userTokenKey); // Use key from LoginCubit
+            key: AppConstants.userTokenKey,); // Use key from LoginCubit
         await _secureStorage.delete(
-            key: AppConstants.userIdKey); // Use key from LoginCubit
+            key: AppConstants.userIdKey,); // Use key from LoginCubit
       }
       // Fall through to redirect logic
     }

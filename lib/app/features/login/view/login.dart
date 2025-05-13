@@ -29,7 +29,7 @@ class LoginRoute extends StatelessWidget {
           if (state.status == LoginStatus.success) {
             // Navigate to the home screen or dashboard on successful login/signup
             AutoRouter.of(context).replaceAll(
-                [const DashboardRoute()]); // Ensure HomeRoute is defined
+                [const DashboardRoute()],); // Ensure HomeRoute is defined
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Login successful!'),
@@ -158,9 +158,9 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               hintText: 'Email',
                               hintStyle: TextStyle(
-                                  color: Colors.white.withOpacity(0.7)),
+                                  color: Colors.white.withOpacity(0.7),),
                               prefixIcon: Icon(Icons.email_outlined,
-                                  color: Colors.white.withOpacity(0.7)),
+                                  color: Colors.white.withOpacity(0.7),),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.1),
                               border: OutlineInputBorder(
@@ -170,7 +170,7 @@ class _LoginPageState extends State<LoginPage> {
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                    color: Colors.white.withOpacity(0.3)),
+                                    color: Colors.white.withOpacity(0.3),),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -197,9 +197,9 @@ class _LoginPageState extends State<LoginPage> {
                             decoration: InputDecoration(
                               hintText: 'Password',
                               hintStyle: TextStyle(
-                                  color: Colors.white.withOpacity(0.7)),
+                                  color: Colors.white.withOpacity(0.7),),
                               prefixIcon: Icon(Icons.lock_outline,
-                                  color: Colors.white.withOpacity(0.7)),
+                                  color: Colors.white.withOpacity(0.7),),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.1),
                               border: OutlineInputBorder(
@@ -209,7 +209,7 @@ class _LoginPageState extends State<LoginPage> {
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 borderSide: BorderSide(
-                                    color: Colors.white.withOpacity(0.3)),
+                                    color: Colors.white.withOpacity(0.3),),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -241,13 +241,13 @@ class _LoginPageState extends State<LoginPage> {
                                         Colors.white.withOpacity(0.9),
                                     foregroundColor: Colors.blueGrey[800],
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 15),
+                                        vertical: 15,),
                                     textStyle: const TextStyle(
                                         fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                        fontWeight: FontWeight.bold,),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12)),
+                                            BorderRadius.circular(12),),
                                     minimumSize:
                                         const Size(double.infinity, 50),
                                   ),
@@ -267,17 +267,17 @@ class _LoginPageState extends State<LoginPage> {
                                 OutlinedButton(
                                   style: OutlinedButton.styleFrom(
                                     side: BorderSide(
-                                        color: Colors.white.withOpacity(0.7)),
+                                        color: Colors.white.withOpacity(0.7),),
                                     foregroundColor:
                                         Colors.white.withOpacity(0.9),
                                     padding: const EdgeInsets.symmetric(
-                                        vertical: 15),
+                                        vertical: 15,),
                                     textStyle: const TextStyle(
                                         fontSize: 18,
-                                        fontWeight: FontWeight.bold),
+                                        fontWeight: FontWeight.bold,),
                                     shape: RoundedRectangleBorder(
                                         borderRadius:
-                                            BorderRadius.circular(12)),
+                                            BorderRadius.circular(12),),
                                     minimumSize:
                                         const Size(double.infinity, 50),
                                   ),
@@ -304,13 +304,13 @@ class _LoginPageState extends State<LoginPage> {
                                     ScaffoldMessenger.of(context).showSnackBar(
                                       const SnackBar(
                                           content: Text(
-                                              'Forgot Password clicked (not implemented yet).')),
+                                              'Forgot Password clicked (not implemented yet).',),),
                                     );
                                   },
                             child: Text(
                               'Forgot Password?',
                               style: TextStyle(
-                                  color: Colors.white.withOpacity(0.8)),
+                                  color: Colors.white.withOpacity(0.8),),
                             ),
                           ),
                         ],

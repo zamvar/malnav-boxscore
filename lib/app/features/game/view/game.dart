@@ -1,224 +1,51 @@
 import 'package:auto_route/auto_route.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-
-// Assuming your Team and Player models/helper classes are defined.
-// If not, we can define simple ones here or import them.
-
-// Simplified Player model for display in roster
-class Player {
-
-  const Player({
-    required this.id,
-    required this.name,
-    required this.jerseyNumber,
-    required this.teamId,
-  });
-
-  // Factory constructor to create a Player instance from a map
-  factory Player.fromMap(Map<String, dynamic> map, String documentId) {
-    return Player(
-      id: documentId, // Use documentId passed to the factory, or map['id'] if preferred
-      name: map['playerName'] as String? ?? map['name'] as String? ?? 'Unknown Player', // Check for both playerName and name
-      jerseyNumber: map['jerseyNumber'] as String? ?? '--',
-      teamId: map['teamId'] as String? ?? '', // Assuming teamId might be in the map or derived
-    );
-  }
-
-  // Example: If player data is a sub-collection or an array within a team document
-  // and the 'id' is a field within the player map itself.
-  factory Player.fromPlayerMapInTeam(Map<String, dynamic> map, String defaultTeamId) {
-    return Player(
-      id: map['playerId'] as String? ?? 'unknown_player_id',
-      name: map['playerName'] as String? ?? 'Unknown Player',
-      jerseyNumber: map['jerseyNumber'] as String? ?? '--',
-      teamId: map['teamId'] as String? ?? defaultTeamId, // Use defaultTeamId if not in map
-    );
-  }
-  final String id;
-  final String name;
-  final String jerseyNumber;
-  final String teamId;
-
-
-  @override
-  bool operator ==(Object other) =>
-      identical(this, other) ||
-      other is Player &&
-          runtimeType == other.runtimeType &&
-          id == other.id;
-
-  @override
-  int get hashCode => id.hashCode;
-
-  @override
-  String toString() {
-    return '$name (#$jerseyNumber)';
-  }
-}
-
-
-// Simplified Team model for fetching and display
-class TeamDetails {
-  TeamDetails({
-    required this.id,
-    required this.name,
-    required this.players,
-  });
-  final String id;
-  final String name;
-  final List<Player> players;
-}
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:score_board/app/commons/game_log.dart';
+import 'package:score_board/app/commons/models/player_model.dart';
+import 'package:score_board/app/commons/models/team_model.dart';
+import 'package:score_board/app/commons/play_by_play.dart';
+import 'package:score_board/app/features/game/cubit/game_cubit.dart';
+import 'package:score_board/app/features/game/cubit/game_state.dart';
+import 'package:score_board/app/features/game/view/game_controls.dart'; // Assuming GameLogEntryModal is here
 
 @RoutePage()
 class ScoreboardGameRoute extends StatelessWidget {
-  // Potentially pass team IDs if not directly fetched via gameId, but game doc should have them
-  // final String homeTeamId;
-  // final String awayTeamId;
-
   const ScoreboardGameRoute({
     @PathParam('gameId') required this.gameId,
     super.key,
-    // required this.homeTeamId,
-    // required this.awayTeamId,
   });
   final String gameId;
 
   @override
   Widget build(BuildContext context) {
-    return ScoreboardGamePage(gameId: gameId);
+    return BlocProvider(
+      create: (context) => GameScoreboardCubit()..loadGameAndTeams(gameId),
+      child: ScoreboardGamePage(
+        gameId: gameId,
+      ), // Pass gameId to ScoreboardGamePage
+    );
   }
 }
 
-class ScoreboardGamePage extends StatefulWidget {
+class ScoreboardGamePage extends StatelessWidget {
+  // Added gameId field
+
   const ScoreboardGamePage({required this.gameId, super.key});
-  final String gameId;
+  final String gameId; // Updated constructor
 
-  @override
-  State<ScoreboardGamePage> createState() => _ScoreboardGamePageState();
-}
+  Widget _buildPlayerList(
+    BuildContext context,
+    TeamDetails team,
+    bool isHomeTeam,
+    GameScoreboardState gameState,
+  ) {
+    final List<Player> onCourtPlayersForThisTeam =
+        (team.id == gameState.homeTeam?.id)
+            ? gameState.homePlayersOnCourt
+            : gameState.awayPlayersOnCourt;
+    final List<Player> rosterToList = team.players;
 
-class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
-  TeamDetails? _homeTeam;
-  TeamDetails? _awayTeam;
-  Map<String, dynamic>? _gameData; // To store game details like scores, quarter
-
-  bool _isLoading = true;
-  String? _error;
-
-  // Mock game state for UI display - in a real app, this comes from gameData/gameLogs
-  int _homeScore = 0;
-  int _awayScore = 0;
-  int _currentQuarter = 1;
-  final String _gameClock = '12:00';
-  String _gameStatus = 'Q1'; // e.g., "Q1", "Halftime", "Final"
-
-  @override
-  void initState() {
-    super.initState();
-    _fetchGameAndTeamData();
-  }
-
-  Future<void> _fetchGameAndTeamData() async {
-    if (!mounted) return;
-    setState(() {
-      _isLoading = true;
-      _error = null;
-    });
-
-    try {
-      // 1. Fetch Game Data
-      final DocumentSnapshot gameDocSnapshot = await FirebaseFirestore.instance
-          .collection('games')
-          .doc(widget.gameId)
-          .get();
-
-      if (!gameDocSnapshot.exists) {
-        throw Exception('Game not found!');
-      }
-      _gameData = gameDocSnapshot.data() as Map<String, dynamic>?;
-      if (_gameData == null) {
-        throw Exception('Game data is empty or invalid!');
-      }
-
-      final String homeTeamId = _gameData!['homeTeamId'] as String;
-      final String awayTeamId = _gameData!['awayTeamId'] as String;
-
-      // 2. Fetch Home Team Data
-      final DocumentSnapshot homeTeamDocSnapshot = await FirebaseFirestore
-          .instance
-          .collection('teams')
-          .doc(homeTeamId)
-          .get();
-      if (!homeTeamDocSnapshot.exists) throw Exception('Home team not found!');
-      final homeTeamMap = homeTeamDocSnapshot.data()! as Map<String, dynamic>;
-      _homeTeam = TeamDetails(
-        id: homeTeamDocSnapshot.id,
-        name: homeTeamMap['name'] as String? ?? 'Home Team',
-        players: (homeTeamMap['players'] as List<dynamic>? ?? [])
-            .map(
-              (playerMap) => Player.fromMap(playerMap as Map<String, dynamic>,homeTeamDocSnapshot.id),
-            )
-            .toList(),
-      );
-
-      // 3. Fetch Away Team Data
-      final DocumentSnapshot awayTeamDocSnapshot = await FirebaseFirestore
-          .instance
-          .collection('teams')
-          .doc(awayTeamId)
-          .get();
-      if (!awayTeamDocSnapshot.exists) throw Exception('Away team not found!');
-      final awayTeamMap = awayTeamDocSnapshot.data()! as Map<String, dynamic>;
-      _awayTeam = TeamDetails(
-        id: awayTeamDocSnapshot.id,
-        name: awayTeamMap['name'] as String? ?? 'Away Team',
-        players: (awayTeamMap['players'] as List<dynamic>? ?? [])
-            .map(
-              (playerMap) => Player.fromMap(playerMap as Map<String, dynamic>,homeTeamDocSnapshot.id),
-            )
-            .toList(),
-      );
-
-      // 4. Update scores and game state from _gameData (or calculate from logs)
-      // For this UI version, we'll use the top-level scores if available,
-      // otherwise, the mock scores will persist.
-      // In a real app, you'd listen to gameLogs and calculate or use live scores.
-      if (mounted) {
-        setState(() {
-          _homeScore = _gameData!['homeTeamScore'] as int? ?? _homeScore;
-          _awayScore = _gameData!['awayTeamScore'] as int? ?? _awayScore;
-          _currentQuarter =
-              _gameData!['currentQuarter'] as int? ?? _currentQuarter;
-          _gameStatus = _deriveGameStatus(
-            _gameData!['status'] as String?,
-            _currentQuarter,
-          );
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = 'Error loading game data: ${e.toString()}';
-          _isLoading = false;
-        });
-      }
-      debugPrint('Error: $e');
-    }
-  }
-
-  String _deriveGameStatus(String? statusFromDb, int quarter) {
-    if (statusFromDb == 'completed') return 'Final';
-    if (statusFromDb == 'halftime') return 'Halftime';
-    if (statusFromDb != null && statusFromDb.startsWith('live_q')) {
-      return 'Q$quarter';
-    }
-    if (statusFromDb == 'scheduled') return 'Scheduled';
-    return 'Q$quarter'; // Default
-  }
-
-  Widget _buildPlayerList(TeamDetails team, bool isHomeTeam) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(8),
@@ -233,7 +60,8 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
           ),
         ),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              isHomeTeam ? CrossAxisAlignment.start : CrossAxisAlignment.end,
           children: [
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
@@ -251,31 +79,51 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
             const Divider(),
             Expanded(
               child: ListView.builder(
-                itemCount: team.players.length,
+                itemCount: rosterToList.length,
                 itemBuilder: (context, index) {
-                  final player = team.players[index];
+                  final player = rosterToList[index];
+                  bool isOnCourt =
+                      onCourtPlayersForThisTeam.any((p) => p.id == player.id);
                   return ListTile(
                     dense: true,
-                    leading: Text(
-                      player.jerseyNumber,
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColorDark,
-                      ),
-                    ),
+                    leading: isHomeTeam
+                        ? Text(
+                            player.jerseyNumber,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isOnCourt
+                                  ? Theme.of(context).primaryColorDark
+                                  : Colors.grey,
+                            ),
+                          )
+                        : null,
                     title: Text(
                       player.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: isOnCourt ? Colors.black : Colors.grey.shade600,
+                        fontWeight:
+                            isOnCourt ? FontWeight.w500 : FontWeight.normal,
+                      ),
                     ),
-                    // subtitle: Text('PTS: X AST: Y REB: Z'), // Placeholder for player stats
+                    trailing: !isHomeTeam
+                        ? Text(
+                            player.jerseyNumber,
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: isOnCourt
+                                  ? Theme.of(context).primaryColorDark
+                                  : Colors.grey,
+                            ),
+                          )
+                        : null,
                     onTap: () {
-                      // Action when player is tapped, e.g., show detailed stats or substitute
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content:
-                              Text('${player.name} tapped (UI Only)'),
-                        ),
+                      _showGameLogEntryModal(
+                        context,
+                        player,
+                        gameState,
+                        gameId, // Pass the gameId from the page
                       );
                     },
                   );
@@ -288,20 +136,21 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
     );
   }
 
-  Widget _buildScoreboardCenter() {
-    // Mock data, replace with actual game data from _gameData or stream
-    final String homeTeamName = _homeTeam?.name ?? 'Home';
-    final String awayTeamName = _awayTeam?.name ?? 'Away';
+  Widget _buildScoreboardCenter(
+    BuildContext context,
+    GameScoreboardState state,
+  ) {
+    final String homeTeamName = state.homeTeam?.name ?? 'Home';
+    final String awayTeamName = state.awayTeam?.name ?? 'Away';
 
     return Expanded(
-      flex: 2, // Give more space to the center scoreboard
+      flex: 2,
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            // Team Names and Scores
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
@@ -317,7 +166,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 8), // Spacer
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     awayTeamName,
@@ -338,7 +187,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
               children: [
                 Expanded(
                   child: Text(
-                    '$_homeScore',
+                    '${state.homeScore}',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -358,7 +207,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                 ),
                 Expanded(
                   child: Text(
-                    '$_awayScore',
+                    '${state.awayScore}',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
                           fontWeight: FontWeight.bold,
@@ -369,37 +218,32 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
               ],
             ),
             const SizedBox(height: 20),
-
-            // Game Status (Quarter, Time)
             Text(
-              _gameStatus, // e.g., "Q1", "Halftime", "Final"
+              state.gameStatusDisplay,
               style: Theme.of(context).textTheme.titleLarge,
             ),
             const SizedBox(height: 8),
             Text(
-              _gameClock, // e.g., "10:34"
+              state.gameClock,
               style: Theme.of(context).textTheme.headlineSmall,
             ),
             const SizedBox(height: 20),
-
-            // Placeholder for Game Controls / Log Entry
-            if (_gameData?['status'] != 'completed' &&
-                _gameData?['status'] != 'cancelled')
-              // Place "Add Game Log" button here
+            if (state.gamePlayStatus == GamePlayStatus.live ||
+                state.gamePlayStatus == GamePlayStatus.halftime)
               ElevatedButton.icon(
                 icon: const Icon(Icons.add_comment_outlined),
-                label: const Text('Add Game Log'),
+                label: const Text('Add Generic Log (Admin)'),
                 onPressed: () {
-                  // Navigate to a page or show a dialog to add a new game log entry
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                      content: Text('Add Game Log tapped (UI Only)'),
+                      content: Text(
+                        'Generic Add Game Log tapped (UI Only - Player specific logs preferred)',
+                      ),
                     ),
                   );
                 },
               ),
-
-            _buildQuarterlyScoresTable(),
+            const Spacer(),
             const SizedBox(height: 20),
           ],
         ),
@@ -407,16 +251,25 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
     );
   }
 
-  Widget _buildQuarterlyScoresTable() {
-    // This would be populated from game logs or a specific field in gameData
-    // For now, using mock data.
-    final Map<String, List<int>> quarterlyScores = {
-      _homeTeam?.name ?? 'Home': [22, 29, 29, 22], // Q1, Q2, Q3, Q4
-      _awayTeam?.name ?? 'Away': [28, 28, 27, 19],
+  Widget _buildQuarterlyScoresTable(
+    BuildContext context,
+    GameScoreboardState state,
+  ) {
+    final Map<String, List<int>> quarterlyScoresData = {
+      state.homeTeam?.name ?? 'Home': state.homeTeamQuarterScores,
+      state.awayTeam?.name ?? 'Away': state.awayTeamQuarterScores,
     };
-    // In a real app, you'd calculate this based on currentQuarter and game status
-    int quartersToDisplay = _currentQuarter > 4 ? 4 : _currentQuarter;
-    if (_gameData?['status'] == 'completed') quartersToDisplay = 4;
+
+    int maxQuartersInvolved = 0;
+    if (state.homeTeamQuarterScores.isNotEmpty) {
+      maxQuartersInvolved = state.homeTeamQuarterScores.length;
+    }
+    if (state.awayTeamQuarterScores.isNotEmpty &&
+        state.awayTeamQuarterScores.length > maxQuartersInvolved) {
+      maxQuartersInvolved = state.awayTeamQuarterScores.length;
+    }
+    // Ensure we display at least 4 quarter columns, plus any overtime.
+    int displayColumnCount = maxQuartersInvolved > 4 ? maxQuartersInvolved : 4;
 
     return Card(
       elevation: 2,
@@ -456,49 +309,44 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
               ],
             ),
             const Divider(),
-            ...quarterlyScores.entries.map((entry) {
+            ...quarterlyScoresData.entries.map((entry) {
               final teamName = entry.key;
-              final scores = entry.value;
-              int total = 0;
-              final List<Widget> scoreWidgets = [];
-              for (int i = 0; i < 4; i++) {
-                final int score = (i < scores.length && i < quartersToDisplay)
-                    ? scores[i]
-                    : 0;
-                total += score;
-                scoreWidgets.add(
-                  SizedBox(
-                    width: 30,
-                    child: Center(
-                      child: Text(
-                        (i < quartersToDisplay ||
-                                _gameData?['status'] == 'completed')
-                            ? score.toString()
-                            : '-',
-                      ),
-                    ),
-                  ),
-                );
+              final scores = entry
+                  .value; // This is List<int> from state (e.g., state.homeTeamQuarterScores)
+              List<Widget> scoreWidgets = [];
+
+              for (int i = 0; i < displayColumnCount; i++) {
+                String scoreToDisplay = '-';
+                // Check if there's a score for this quarter (index i)
+                if (i < scores.length) {
+                  // Display score if game is completed OR if this quarter is current or past
+                  if (state.gamePlayStatus == GamePlayStatus.completed ||
+                      (i + 1) <= state.currentQuarter) {
+                    scoreToDisplay = scores[i].toString();
+                  }
+                }
+                scoreWidgets.add(SizedBox(
+                    width: 30, child: Center(child: Text(scoreToDisplay)),),);
               }
-              scoreWidgets.add(
-                SizedBox(
+
+              // Use the total score from the state for accuracy
+              int finalTotal = (teamName == (state.homeTeam?.name ?? 'Home'))
+                  ? state.homeScore
+                  : state.awayScore;
+
+              scoreWidgets.add(SizedBox(
                   width: 35,
                   child: Center(
-                    child: Text(
-                      total.toString(),
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              );
+                      child: Text(finalTotal.toString(),
+                          style:
+                              const TextStyle(fontWeight: FontWeight.bold),),),),);
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
                     Expanded(
-                      child: Text(teamName, overflow: TextOverflow.ellipsis),
-                    ),
+                        child: Text(teamName, overflow: TextOverflow.ellipsis),),
                     ...scoreWidgets,
                   ],
                 ),
@@ -512,68 +360,266 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(_gameData?['name'] as String? ?? 'Live Scoreboard'),
-        backgroundColor: Theme.of(context).primaryColorDark, // Example color
-        foregroundColor: Colors.white,
-        leading:
-            AutoRouter.of(context).canPop() ? const AutoLeadingButton() : null,
-      ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _error != null
-              ? Center(
+    return BlocBuilder<GameScoreboardCubit, GameScoreboardState>(
+      builder: (context, state) {
+        return Scaffold(
+          appBar: AppBar(
+            title:
+                Text(state.gameData?['name'] as String? ?? 'Live Scoreboard'),
+            backgroundColor: Theme.of(context).primaryColorDark,
+            foregroundColor: Colors.white,
+            leading: AutoRouter.of(context).canPop()
+                ? const AutoLeadingButton()
+                : null,
+          ),
+          body: Builder(
+            builder: (scaffoldContext) {
+              if (state.loadingStatus == GameLoadingStatus.loading &&
+                  state.homeTeam == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              if (state.loadingStatus == GameLoadingStatus.error &&
+                  state.homeTeam == null) {
+                return Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(_error!, style: const TextStyle(color: Colors.red)),
+                      Text(
+                        state.error ?? 'An unknown error occurred.',
+                        style: const TextStyle(color: Colors.red),
+                        textAlign: TextAlign.center,
+                      ),
                       const SizedBox(height: 10),
                       ElevatedButton(
-                        onPressed: _fetchGameAndTeamData,
+                        onPressed: () {
+                          // Use gameId from the state for retry, which was set when cubit was initialized
+                          if (state.gameId != null &&
+                              state.gameId!.isNotEmpty) {
+                            context
+                                .read<GameScoreboardCubit>()
+                                .loadGameAndTeams(state.gameId!);
+                          } else {
+                            // This fallback should ideally not be needed if gameId is always in state after loadGameAndTeams is called
+                            ScaffoldMessenger.of(scaffoldContext).showSnackBar(
+                              const SnackBar(
+                                content: Text(
+                                  'Error: Game ID not available for retry in state.',
+                                ),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
                         child: const Text('Retry'),
                       ),
                     ],
                   ),
-                )
-              : (_homeTeam == null || _awayTeam == null)
-                  ? const Center(
-                      child: Text('Team data could not be loaded.'),
-                    )
-                  : LayoutBuilder(
-                      builder: (context, constraints) {
-                        if (constraints.maxWidth < 600) {
-                          // Phone viewport
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: <Widget>[
-                              _buildScoreboardCenter(), // Scoreboard at the top
+                );
+              }
+              if (state.homeTeam == null || state.awayTeam == null) {
+                return const Center(
+                  child: Text(
+                    'Team data could not be loaded. Ensure teams and game exist in Firestore.',
+                  ),
+                );
+              }
+
+              // Main layout
+              return LayoutBuilder(
+                builder: (context, constraints) {
+                  if (constraints.maxWidth < 650) {
+                    // return Column(
+                    //   crossAxisAlignment: CrossAxisAlignment.stretch,
+                    //   children: <Widget>[
+                    //     SizedBox(
+                    //         height: 350,
+                    //         child: _buildScoreboardCenter(context, state)),
+                    //     // Add GameControlsWidget here for mobile view,
+                    //     _buildQuarterlyScoresTable(context, state),
+                    //     const GameControlsWidget(), // Add this
+                    //     Expanded(
+                    //       child: Row(
+                    //         children: <Widget>[
+                    //           _buildPlayerList(
+                    //               context, state.homeTeam!, true, state),
+                    //           _buildPlayerList(
+                    //               context, state.awayTeam!, false, state)
+                    //         ],
+                    //       ),
+                    //     ),
+                    //   ],
+                    // );
+                    return SingleChildScrollView(
+                      // Added SingleChildScrollView
+                      child: Column(
+                        // mainAxisSize: MainAxisSize.min, // Optional, if content might be shorter than screen
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: <Widget>[
+                          // Scoreboard Center - give it a defined height or let it size intrinsically
+                          SizedBox(
+                              height: 350, // User's preferred height
+                              child: _buildScoreboardCenter(context, state),),
+                          _buildQuarterlyScoresTable(context, state),
+                          Text(
+                            'Play by Play',
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(fontWeight: FontWeight.bold),
+                          ),
+                          SizedBox(
+                            height: 200,
+                            child: PlayByPlayWidget(
+                              awayTeamId: state.awayTeam!.id,
+                              homeTeamId: state.homeTeam!.id,
+                              awayTeamName: state.awayTeam!.name,
+                              homeTeamName: state.homeTeam!.name,
+                              gameLogs: state.gameLogs,
+                            ),
+                          ),
+                          const GameControlsWidget(), // You would place your GameControlsWidget here
+
+                          // Player Lists Row - give it a defined height
+                          SizedBox(
+                            height:
+                                300, // Example height, adjust as needed for player lists
+                            child: Row(
+                              children: <Widget>[
+                                _buildPlayerList(
+                                    context, state.homeTeam!, true, state,),
+                                _buildPlayerList(
+                                    context, state.awayTeam!, false, state,),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  } else {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        _buildPlayerList(context, state.homeTeam!, true, state),
+                        Expanded(
+                          // Make center column flexible
+                          flex: 2, // As before
+                          child: Column(
+                            children: [
+                              _buildScoreboardCenter(context, state),
+                              _buildQuarterlyScoresTable(context, state),
                               Expanded(
-                                child: Row(
-                                  // Players lists side-by-side
-                                  children: <Widget>[
-                                    _buildPlayerList(_homeTeam!, true),
-                                    _buildPlayerList(_awayTeam!, false)
-                                  ],
+                                child: PlayByPlayWidget(
+                                  awayTeamId: state.awayTeam!.id,
+                                  homeTeamId: state.homeTeam!.id,
+                                  awayTeamName: state.awayTeam!.name,
+                                  homeTeamName: state.homeTeam!.name,
+                                  gameLogs: state.gameLogs,
                                 ),
                               ),
+                              // Add GameControlsWid,get here for wider view
+                              const GameControlsWidget(), // Add this
+                              // You might want to add a Spacer or adjust layout if needed
                             ],
-                          );
-                        } else {
-                          // Wider viewport (tablet/desktop)
-                          return Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              _buildPlayerList(
-                                  _homeTeam!, true), // Home team on the left
-                              _buildScoreboardCenter(), // Scoreboard in the middle
-                              _buildPlayerList(
-                                  _awayTeam!, false), // Away team on the right
-                            ],
-                          );
-                        }
-                      },
-                    ),
+                          ),
+                        ),
+                        _buildPlayerList(
+                            context, state.awayTeam!, false, state,),
+                      ],
+                    );
+                  }
+                },
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _showGameLogEntryModal(
+    BuildContext context,
+    Player playerForLog,
+    GameScoreboardState currentState,
+    String gameIdFromPage, // Added gameId as a direct parameter
+  ) {
+    if (currentState.homeTeam == null || currentState.awayTeam == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Team data not fully loaded for modal.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    List<Player> resolvedPlayerInFocusTeamRoster;
+    List<Player> resolvedOpponentTeamRoster;
+
+    if (playerForLog.teamId == currentState.homeTeam!.id) {
+      resolvedPlayerInFocusTeamRoster = currentState.homeTeam!.players;
+      resolvedOpponentTeamRoster = currentState.awayTeam!.players;
+    } else if (playerForLog.teamId == currentState.awayTeam!.id) {
+      resolvedPlayerInFocusTeamRoster = currentState.awayTeam!.players;
+      resolvedOpponentTeamRoster = currentState.homeTeam!.players;
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Error: Player team ID mismatch for modal.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
+    final List<Player> allOnCourt = [
+      ...currentState.homePlayersOnCourt,
+      ...currentState.awayPlayersOnCourt,
+    ];
+
+    if (allOnCourt.isEmpty &&
+        (currentState.homeTeam!.players.isNotEmpty ||
+            currentState.awayTeam!.players.isNotEmpty)) {
+      debugPrint(
+        'ScoreboardPage: Warning - allPlayersOnCourt in state is empty but team rosters are not. Modal player selectors might be incomplete for on-court specific actions.',
+      );
+    }
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext dialogContext) {
+        return GameLogEntryModal(
+          playerInFocus: playerForLog,
+          gameQuarter: currentState.gameStatusDisplay.split(' - ').first,
+          gameClock: currentState.gameClock,
+          playerInFocusTeamRoster: resolvedPlayerInFocusTeamRoster,
+          opponentTeamRoster: resolvedOpponentTeamRoster,
+          allPlayersOnCourt: allOnCourt,
+          onLogConfirm: (logData) {
+            // Use gameIdFromPage passed directly to this method
+            if (gameIdFromPage.isNotEmpty) {
+              context
+                  .read<GameScoreboardCubit>()
+                  .addLogEntry(gameIdFromPage, logData);
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    'Log for ${logData['player']?['playerName']} - ${logData['actionType']} confirmed! Processing...',
+                  ),
+                  backgroundColor: Colors.blue,
+                ),
+              );
+            } else {
+              ScaffoldMessenger.of(dialogContext).showSnackBar(
+                const SnackBar(
+                  content: Text('Error: Game ID not available to save log.'),
+                  backgroundColor: Colors.red,
+                ),
+              );
+            }
+          },
+        );
+      },
     );
   }
 }
