@@ -7,23 +7,56 @@ import 'package:flutter/material.dart';
 
 // Simplified Player model for display in roster
 class Player {
-  Player({
-    required this.playerId,
-    required this.playerName,
+
+  const Player({
+    required this.id,
+    required this.name,
     required this.jerseyNumber,
+    required this.teamId,
   });
 
-  factory Player.fromMap(Map<String, dynamic> map) {
+  // Factory constructor to create a Player instance from a map
+  factory Player.fromMap(Map<String, dynamic> map, String documentId) {
     return Player(
-      playerId: map['playerId'] as String? ?? 'N/A',
-      playerName: map['playerName'] as String? ?? 'Unknown Player',
+      id: documentId, // Use documentId passed to the factory, or map['id'] if preferred
+      name: map['playerName'] as String? ?? map['name'] as String? ?? 'Unknown Player', // Check for both playerName and name
       jerseyNumber: map['jerseyNumber'] as String? ?? '--',
+      teamId: map['teamId'] as String? ?? '', // Assuming teamId might be in the map or derived
     );
   }
-  final String playerId;
-  final String playerName;
+
+  // Example: If player data is a sub-collection or an array within a team document
+  // and the 'id' is a field within the player map itself.
+  factory Player.fromPlayerMapInTeam(Map<String, dynamic> map, String defaultTeamId) {
+    return Player(
+      id: map['playerId'] as String? ?? 'unknown_player_id',
+      name: map['playerName'] as String? ?? 'Unknown Player',
+      jerseyNumber: map['jerseyNumber'] as String? ?? '--',
+      teamId: map['teamId'] as String? ?? defaultTeamId, // Use defaultTeamId if not in map
+    );
+  }
+  final String id;
+  final String name;
   final String jerseyNumber;
+  final String teamId;
+
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Player &&
+          runtimeType == other.runtimeType &&
+          id == other.id;
+
+  @override
+  int get hashCode => id.hashCode;
+
+  @override
+  String toString() {
+    return '$name (#$jerseyNumber)';
+  }
 }
+
 
 // Simplified Team model for fetching and display
 class TeamDetails {
@@ -124,7 +157,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
         name: homeTeamMap['name'] as String? ?? 'Home Team',
         players: (homeTeamMap['players'] as List<dynamic>? ?? [])
             .map(
-              (playerMap) => Player.fromMap(playerMap as Map<String, dynamic>),
+              (playerMap) => Player.fromMap(playerMap as Map<String, dynamic>,homeTeamDocSnapshot.id),
             )
             .toList(),
       );
@@ -142,7 +175,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
         name: awayTeamMap['name'] as String? ?? 'Away Team',
         players: (awayTeamMap['players'] as List<dynamic>? ?? [])
             .map(
-              (playerMap) => Player.fromMap(playerMap as Map<String, dynamic>),
+              (playerMap) => Player.fromMap(playerMap as Map<String, dynamic>,homeTeamDocSnapshot.id),
             )
             .toList(),
       );
@@ -231,7 +264,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                       ),
                     ),
                     title: Text(
-                      player.playerName,
+                      player.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -241,7 +274,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content:
-                              Text('${player.playerName} tapped (UI Only)'),
+                              Text('${player.name} tapped (UI Only)'),
                         ),
                       );
                     },
