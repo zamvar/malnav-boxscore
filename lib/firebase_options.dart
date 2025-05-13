@@ -58,7 +58,8 @@ class DefaultFirebaseOptions {
     messagingSenderId: '1039549451778',
     projectId: 'score-board-malnav',
     authDomain: 'score-board-malnav.firebaseapp.com',
-    databaseURL: 'https://score-board-malnav-default-rtdb.asia-southeast1.firebasedatabase.app',
+    databaseURL:
+        'https://score-board-malnav-default-rtdb.asia-southeast1.firebasedatabase.app',
     storageBucket: 'score-board-malnav.firebasestorage.app',
     measurementId: 'G-LXDGRFLY9Y',
   );

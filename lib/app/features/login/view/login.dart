@@ -22,12 +22,14 @@ class LoginRoute extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (context) => LoginCubit(), // LoginCubit instantiates its own dependencies
+      create: (context) =>
+          LoginCubit(), // LoginCubit instantiates its own dependencies
       child: BlocConsumer<LoginCubit, LoginState>(
         listener: (context, state) {
           if (state.status == LoginStatus.success) {
             // Navigate to the home screen or dashboard on successful login/signup
-            AutoRouter.of(context).replaceAll([const DashboardRoute()]); // Ensure HomeRoute is defined
+            AutoRouter.of(context).replaceAll(
+                [const DashboardRoute()]); // Ensure HomeRoute is defined
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
                 content: Text('Login successful!'),
@@ -53,7 +55,8 @@ class LoginRoute extends StatelessWidget {
   }
 }
 
-class LoginPage extends StatefulWidget { // Receive loading state
+class LoginPage extends StatefulWidget {
+  // Receive loading state
 
   const LoginPage({super.key, this.isLoading = false});
   final bool isLoading;
@@ -154,8 +157,10 @@ class _LoginPageState extends State<LoginPage> {
                             controller: _emailController,
                             decoration: InputDecoration(
                               hintText: 'Email',
-                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                              prefixIcon: Icon(Icons.email_outlined, color: Colors.white.withOpacity(0.7)),
+                              hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.7)),
+                              prefixIcon: Icon(Icons.email_outlined,
+                                  color: Colors.white.withOpacity(0.7)),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.1),
                               border: OutlineInputBorder(
@@ -164,11 +169,13 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                                borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.3)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.white),
+                                borderSide:
+                                    const BorderSide(color: Colors.white),
                               ),
                             ),
                             style: const TextStyle(color: Colors.white),
@@ -177,7 +184,8 @@ class _LoginPageState extends State<LoginPage> {
                               if (value == null || value.isEmpty) {
                                 return 'Please enter your email';
                               }
-                              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+').hasMatch(value)) {
+                              if (!RegExp(r'^[^@]+@[^@]+\.[^@]+')
+                                  .hasMatch(value)) {
                                 return 'Please enter a valid email';
                               }
                               return null;
@@ -188,8 +196,10 @@ class _LoginPageState extends State<LoginPage> {
                             controller: _passwordController,
                             decoration: InputDecoration(
                               hintText: 'Password',
-                              hintStyle: TextStyle(color: Colors.white.withOpacity(0.7)),
-                              prefixIcon: Icon(Icons.lock_outline, color: Colors.white.withOpacity(0.7)),
+                              hintStyle: TextStyle(
+                                  color: Colors.white.withOpacity(0.7)),
+                              prefixIcon: Icon(Icons.lock_outline,
+                                  color: Colors.white.withOpacity(0.7)),
                               filled: true,
                               fillColor: Colors.white.withOpacity(0.1),
                               border: OutlineInputBorder(
@@ -198,11 +208,13 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                               enabledBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: BorderSide(color: Colors.white.withOpacity(0.3)),
+                                borderSide: BorderSide(
+                                    color: Colors.white.withOpacity(0.3)),
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
-                                borderSide: const BorderSide(color: Colors.white),
+                                borderSide:
+                                    const BorderSide(color: Colors.white),
                               ),
                             ),
                             style: const TextStyle(color: Colors.white),
@@ -225,16 +237,25 @@ class _LoginPageState extends State<LoginPage> {
                               children: [
                                 ElevatedButton(
                                   style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white.withOpacity(0.9),
+                                    backgroundColor:
+                                        Colors.white.withOpacity(0.9),
                                     foregroundColor: Colors.blueGrey[800],
-                                    padding: const EdgeInsets.symmetric(vertical: 15),
-                                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    minimumSize: const Size(double.infinity, 50),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 15),
+                                    textStyle: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    minimumSize:
+                                        const Size(double.infinity, 50),
                                   ),
                                   onPressed: () {
                                     if (_formKey.currentState!.validate()) {
-                                      context.read<LoginCubit>().loginWithEmailAndPassword(
+                                      context
+                                          .read<LoginCubit>()
+                                          .loginWithEmailAndPassword(
                                             _emailController.text,
                                             _passwordController.text,
                                           );
@@ -245,16 +266,27 @@ class _LoginPageState extends State<LoginPage> {
                                 const SizedBox(height: 12),
                                 OutlinedButton(
                                   style: OutlinedButton.styleFrom(
-                                    side: BorderSide(color: Colors.white.withOpacity(0.7)),
-                                    foregroundColor: Colors.white.withOpacity(0.9),
-                                    padding: const EdgeInsets.symmetric(vertical: 15),
-                                    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                                    minimumSize: const Size(double.infinity, 50),
+                                    side: BorderSide(
+                                        color: Colors.white.withOpacity(0.7)),
+                                    foregroundColor:
+                                        Colors.white.withOpacity(0.9),
+                                    padding: const EdgeInsets.symmetric(
+                                        vertical: 15),
+                                    textStyle: const TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold),
+                                    shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12)),
+                                    minimumSize:
+                                        const Size(double.infinity, 50),
                                   ),
                                   onPressed: () {
                                     if (_formKey.currentState!.validate()) {
-                                      context.read<LoginCubit>().signUpWithEmailAndPassword( // Corrected to signUp
+                                      context
+                                          .read<LoginCubit>()
+                                          .signUpWithEmailAndPassword(
+                                            // Corrected to signUp
                                             _emailController.text,
                                             _passwordController.text,
                                           );
@@ -266,14 +298,19 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                           const SizedBox(height: 15),
                           TextButton(
-                            onPressed: widget.isLoading ? null : () {
-                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Forgot Password clicked (not implemented yet).')),
-                              );
-                            },
+                            onPressed: widget.isLoading
+                                ? null
+                                : () {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Forgot Password clicked (not implemented yet).')),
+                                    );
+                                  },
                             child: Text(
                               'Forgot Password?',
-                              style: TextStyle(color: Colors.white.withOpacity(0.8)),
+                              style: TextStyle(
+                                  color: Colors.white.withOpacity(0.8)),
                             ),
                           ),
                         ],

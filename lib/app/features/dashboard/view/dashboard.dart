@@ -80,8 +80,10 @@ class _DashboardPageState extends State<DashboardPage> {
               // Placeholder for logout action
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                    content: Text(
-                        'Logout action triggered (UI Only). Navigating to Login...',),),
+                  content: Text(
+                    'Logout action triggered (UI Only). Navigating to Login...',
+                  ),
+                ),
               );
               AutoRouter.of(context).replaceAll([const LoginRoute()]);
             },
@@ -105,7 +107,9 @@ class _DashboardPageState extends State<DashboardPage> {
               child: Text(
                 'Welcome back!',
                 style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w600, color: Colors.indigo[700],),
+                      fontWeight: FontWeight.w600,
+                      color: Colors.indigo[700],
+                    ),
               ),
             ),
 
@@ -120,9 +124,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   textStyle: const TextStyle(
-                      fontSize: 18, fontWeight: FontWeight.bold,),
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
                   elevation: 5,
                 ),
                 onPressed: () {
@@ -134,17 +141,21 @@ class _DashboardPageState extends State<DashboardPage> {
             ),
 
             // Manage Teams Card
-            _buildDashboardCard(context,
-                icon: Icons.group_work_outlined,
-                title: 'Manage Teams',
-                subtitle: 'Create, edit, and view your teams.',
-                color: Colors.teal.shade600, onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                    content: Text('Navigate to Manage Teams (UI Only)'),),
-              );
-              // AutoRouter.of(context).push(const ManageTeamsRoute());
-            },),
+            _buildDashboardCard(
+              context,
+              icon: Icons.group_work_outlined,
+              title: 'Manage Teams',
+              subtitle: 'Create, edit, and view your teams.',
+              color: Colors.teal.shade600,
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Navigate to Manage Teams (UI Only)'),
+                  ),
+                );
+                // AutoRouter.of(context).push(const ManageTeamsRoute());
+              },
+            ),
             const SizedBox(height: 16),
 
             // Ongoing Games Card (using static mock data)
@@ -159,12 +170,14 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildDashboardCard(BuildContext context,
-      {required IconData icon,
-      required String title,
-      required String subtitle,
-      required Color color,
-      VoidCallback? onTap,}) {
+  Widget _buildDashboardCard(
+    BuildContext context, {
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required Color color,
+    VoidCallback? onTap,
+  }) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -207,8 +220,11 @@ class _DashboardPageState extends State<DashboardPage> {
                 ),
               ),
               if (onTap != null)
-                Icon(Icons.arrow_forward_ios,
-                    color: Colors.grey.shade400, size: 18,),
+                Icon(
+                  Icons.arrow_forward_ios,
+                  color: Colors.grey.shade400,
+                  size: 18,
+                ),
             ],
           ),
         ),
@@ -233,8 +249,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     color: Colors.lightBlue.shade600.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.sports_soccer_outlined,
-                      size: 30, color: Colors.lightBlue.shade700,),
+                  child: Icon(
+                    Icons.sports_soccer_outlined,
+                    size: 30,
+                    color: Colors.lightBlue.shade700,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Text(
@@ -264,15 +283,18 @@ class _DashboardPageState extends State<DashboardPage> {
                 itemCount: games.length,
                 itemBuilder: (context, index) {
                   return ListTile(
-                    leading: Icon(Icons.circle,
-                        size: 10, color: Colors.green.shade600,),
+                    leading: Icon(
+                      Icons.circle,
+                      size: 10,
+                      color: Colors.green.shade600,
+                    ),
                     title: Text(games[index]),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content:
-                                Text('Tapped on ${games[index]} (UI Only)'),),
+                          content: Text('Tapped on ${games[index]} (UI Only)'),
+                        ),
                       );
                       // AutoRouter.of(context).push(GameDetailsRoute(gameId: games[index]));
                     },
@@ -288,12 +310,15 @@ class _DashboardPageState extends State<DashboardPage> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('View All Ongoing Games (UI Only)'),),
+                          content: Text('View All Ongoing Games (UI Only)'),
+                        ),
                       );
                       // AutoRouter.of(context).push(const AllOngoingGamesRoute());
                     },
-                    child: Text('View All',
-                        style: TextStyle(color: Colors.indigo[700]),),
+                    child: Text(
+                      'View All',
+                      style: TextStyle(color: Colors.indigo[700]),
+                    ),
                   ),
                 ),
               ),
@@ -325,8 +350,11 @@ class _DashboardPageState extends State<DashboardPage> {
                     color: Colors.deepPurple.shade600.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(Icons.history_edu_outlined,
-                      size: 30, color: Colors.deepPurple.shade700,),
+                  child: Icon(
+                    Icons.history_edu_outlined,
+                    size: 30,
+                    color: Colors.deepPurple.shade700,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Text(
@@ -356,16 +384,24 @@ class _DashboardPageState extends State<DashboardPage> {
                 itemCount: itemsToShow, // Show only the first few items
                 itemBuilder: (context, index) {
                   return ListTile(
-                    leading: Icon(Icons.check_circle_outline,
-                        size: 20, color: Colors.grey.shade500,),
+                    leading: Icon(
+                      Icons.check_circle_outline,
+                      size: 20,
+                      color: Colors.grey.shade500,
+                    ),
                     title: Text(gameHistory[index]),
-                    trailing: const Icon(Icons.arrow_forward_ios,
-                        size: 16, color: Colors.grey,),
+                    trailing: const Icon(
+                      Icons.arrow_forward_ios,
+                      size: 16,
+                      color: Colors.grey,
+                    ),
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content: Text(
-                                'Tapped on ${gameHistory[index]} (UI Only)',),),
+                          content: Text(
+                            'Tapped on ${gameHistory[index]} (UI Only)',
+                          ),
+                        ),
                       );
                       // AutoRouter.of(context).push(GameDetailsRoute(gameId: gameHistory[index]));
                     },
@@ -381,12 +417,15 @@ class _DashboardPageState extends State<DashboardPage> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('View All Game History (UI Only)'),),
+                          content: Text('View All Game History (UI Only)'),
+                        ),
                       );
                       // AutoRouter.of(context).push(const AllGameHistoryRoute());
                     },
-                    child: Text('View All',
-                        style: TextStyle(color: Colors.indigo[700]),),
+                    child: Text(
+                      'View All',
+                      style: TextStyle(color: Colors.indigo[700]),
+                    ),
                   ),
                 ),
               ),

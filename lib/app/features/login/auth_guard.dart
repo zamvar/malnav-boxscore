@@ -6,7 +6,6 @@ import 'package:score_board/router/app_router.gr.dart';
 import 'package:score_board/utils/constants.dart';
 
 class AuthGuard extends AutoRouteGuard {
-
   // Constructor is now empty as dependencies are handled internally
   AuthGuard();
   // Instantiate FirebaseAuth and FlutterSecureStorage directly
@@ -23,12 +22,15 @@ class AuthGuard extends AutoRouteGuard {
   }
 
   @override
-  Future<void> onNavigation(NavigationResolver resolver, StackRouter router) async {
+  Future<void> onNavigation(
+      NavigationResolver resolver, StackRouter router) async {
     final String? storedToken = await _getUserToken();
     final String? storedUserId = await _getUserId();
     final User? currentFirebaseUser = _firebaseAuth.currentUser;
 
-    if (storedToken != null && storedUserId != null && currentFirebaseUser != null) {
+    if (storedToken != null &&
+        storedUserId != null &&
+        currentFirebaseUser != null) {
       // We have a token, a user ID in storage, and Firebase has an active user.
       // Verify that the stored user ID matches the current Firebase user's UID.
       if (currentFirebaseUser.uid == storedUserId) {
@@ -42,15 +44,19 @@ class AuthGuard extends AutoRouteGuard {
           // Token refresh failed (e.g., token expired, user disabled, network issue).
           // The session is no longer valid.
           // Clear stored credentials and redirect to login.
-          await _secureStorage.delete(key: AppConstants.userTokenKey); // Use key from LoginCubit
-          await _secureStorage.delete(key: AppConstants.userIdKey);   // Use key from LoginCubit
+          await _secureStorage.delete(
+              key: AppConstants.userTokenKey); // Use key from LoginCubit
+          await _secureStorage.delete(
+              key: AppConstants.userIdKey); // Use key from LoginCubit
           // Fall through to redirect logic
         }
       } else {
         // Mismatch between stored user ID and Firebase's current user UID.
         // This indicates stale storage. Clear it and redirect.
-          await _secureStorage.delete(key: AppConstants.userTokenKey); // Use key from LoginCubit
-          await _secureStorage.delete(key: AppConstants.userIdKey);   // Use key from LoginCubit
+        await _secureStorage.delete(
+            key: AppConstants.userTokenKey); // Use key from LoginCubit
+        await _secureStorage.delete(
+            key: AppConstants.userIdKey); // Use key from LoginCubit
         // Fall through to redirect logic
       }
     } else {
@@ -58,8 +64,10 @@ class AuthGuard extends AutoRouteGuard {
       // This means the user is not authenticated or storage is inconsistent.
       // If there's any partial data, clear it to be safe.
       if (storedToken != null || storedUserId != null) {
-          await _secureStorage.delete(key: AppConstants.userTokenKey); // Use key from LoginCubit
-          await _secureStorage.delete(key: AppConstants.userIdKey);   // Use key from LoginCubit
+        await _secureStorage.delete(
+            key: AppConstants.userTokenKey); // Use key from LoginCubit
+        await _secureStorage.delete(
+            key: AppConstants.userIdKey); // Use key from LoginCubit
       }
       // Fall through to redirect logic
     }

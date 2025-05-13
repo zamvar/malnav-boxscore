@@ -38,33 +38,45 @@ class LoginCubit extends Cubit<LoginState> {
       final String? idToken = await user.getIdToken();
       if (idToken != null) {
         await _secureStorage.write(
-            key: AppConstants.userTokenKey, value: idToken,);
+          key: AppConstants.userTokenKey,
+          value: idToken,
+        );
         await _secureStorage.write(
-            key: AppConstants.userIdKey, value: user.uid,);
+          key: AppConstants.userIdKey,
+          value: user.uid,
+        );
         await _secureStorage.write(key: AppConstants.userRoleKey, value: role);
         await _secureStorage.write(
-            key: AppConstants.userUsernameKey, value: username,);
+          key: AppConstants.userUsernameKey,
+          value: username,
+        );
 
-        emit(state.copyWith(
-          status: LoginStatus.success,
-          userId: user.uid,
-          token: idToken,
-          role: role,
-          username: username,
-          error: null,
-        ),);
+        emit(
+          state.copyWith(
+            status: LoginStatus.success,
+            userId: user.uid,
+            token: idToken,
+            role: role,
+            username: username,
+            error: null,
+          ),
+        );
       } else {
-        emit(state.copyWith(
-          status: LoginStatus.failure,
-          error: 'Failed to retrieve user token. Please try again.',
-        ),);
+        emit(
+          state.copyWith(
+            status: LoginStatus.failure,
+            error: 'Failed to retrieve user token. Please try again.',
+          ),
+        );
       }
     } catch (e) {
       // Handle Firestore read error or other errors during detail fetching
-      emit(state.copyWith(
-        status: LoginStatus.failure,
-        error: 'Error fetching user details: ${e.toString()}',
-      ),);
+      emit(
+        state.copyWith(
+          status: LoginStatus.failure,
+          error: 'Error fetching user details: ${e.toString()}',
+        ),
+      );
     }
   }
 
@@ -83,10 +95,12 @@ class LoginCubit extends Cubit<LoginState> {
           user,
         );
       } else {
-        emit(state.copyWith(
-          status: LoginStatus.failure,
-          error: 'Login successful, but user data is unavailable.',
-        ),);
+        emit(
+          state.copyWith(
+            status: LoginStatus.failure,
+            error: 'Login successful, but user data is unavailable.',
+          ),
+        );
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'An unknown error occurred during login.';
@@ -107,10 +121,12 @@ class LoginCubit extends Cubit<LoginState> {
       }
       emit(state.copyWith(status: LoginStatus.failure, error: errorMessage));
     } catch (e) {
-      emit(state.copyWith(
-        status: LoginStatus.failure,
-        error: 'An unexpected error occurred: ${e.toString()}',
-      ),);
+      emit(
+        state.copyWith(
+          status: LoginStatus.failure,
+          error: 'An unexpected error occurred: ${e.toString()}',
+        ),
+      );
     }
   }
 
@@ -128,10 +144,12 @@ class LoginCubit extends Cubit<LoginState> {
           user,
         );
       } else {
-        emit(state.copyWith(
-          status: LoginStatus.failure,
-          error: 'Sign up failed. Could not create user.',
-        ),);
+        emit(
+          state.copyWith(
+            status: LoginStatus.failure,
+            error: 'Sign up failed. Could not create user.',
+          ),
+        );
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = 'An unknown error occurred during sign up.';
@@ -148,10 +166,12 @@ class LoginCubit extends Cubit<LoginState> {
       }
       emit(state.copyWith(status: LoginStatus.failure, error: errorMessage));
     } catch (e) {
-      emit(state.copyWith(
-        status: LoginStatus.failure,
-        error: 'An unexpected error occurred during sign up: ${e.toString()}',
-      ),);
+      emit(
+        state.copyWith(
+          status: LoginStatus.failure,
+          error: 'An unexpected error occurred during sign up: ${e.toString()}',
+        ),
+      );
     }
   }
 
@@ -173,13 +193,17 @@ class LoginCubit extends Cubit<LoginState> {
                 await currentUserFromFirebaseAuth.getIdToken(true);
             if (refreshedToken != null) {
               await _secureStorage.write(
-                  key: AppConstants.userTokenKey, value: refreshedToken,);
-              emit(state.copyWith(
-                status: LoginStatus.success,
-                userId: currentUserFromFirebaseAuth.uid,
-                token: refreshedToken,
-                error: null,
-              ),);
+                key: AppConstants.userTokenKey,
+                value: refreshedToken,
+              );
+              emit(
+                state.copyWith(
+                  status: LoginStatus.success,
+                  userId: currentUserFromFirebaseAuth.uid,
+                  token: refreshedToken,
+                  error: null,
+                ),
+              );
             } else {
               await logout(); // Emits initial state
             }
@@ -199,10 +223,12 @@ class LoginCubit extends Cubit<LoginState> {
         }
       }
     } catch (e) {
-      emit(state.copyWith(
-        status: LoginStatus.failure,
-        error: 'Error checking user status: $e',
-      ),);
+      emit(
+        state.copyWith(
+          status: LoginStatus.failure,
+          error: 'Error checking user status: $e',
+        ),
+      );
       await logout(); // Emits initial state
     }
   }
@@ -217,15 +243,19 @@ class LoginCubit extends Cubit<LoginState> {
     } catch (e) {
       await _secureStorage.delete(key: AppConstants.userTokenKey);
       await _secureStorage.delete(key: AppConstants.userIdKey);
-      emit(const LoginState(
+      emit(
+        const LoginState(
           status: LoginStatus.initial,
-          error: 'Error during logout, session cleared.',),);
+          error: 'Error during logout, session cleared.',
+        ),
+      );
       // Optionally log the error e
     }
   }
 
-  static Future<String?> getUserToken(
-      {required FlutterSecureStorage storage,}) async {
+  static Future<String?> getUserToken({
+    required FlutterSecureStorage storage,
+  }) async {
     return storage.read(key: AppConstants.userTokenKey);
   }
 
@@ -233,7 +263,8 @@ class LoginCubit extends Cubit<LoginState> {
     // ADDED THIS METHOD
     final secureStorage = storage ?? const FlutterSecureStorage();
     return secureStorage.read(
-        key: AppConstants.userIdKey,); // Use public key
+      key: AppConstants.userIdKey,
+    ); // Use public key
   }
 }
 

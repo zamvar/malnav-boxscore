@@ -22,10 +22,12 @@ class LobbyCubit extends Cubit<LobbyState> {
         );
       }).toList();
 
-      emit(state.copyWith(
-        status: LobbyStatus.teamsLoaded,
-        teams: fetchedTeams,
-      ),);
+      emit(
+        state.copyWith(
+          status: LobbyStatus.teamsLoaded,
+          teams: fetchedTeams,
+        ),
+      );
     } catch (e) {
       emit(
         state.copyWith(
@@ -49,10 +51,13 @@ class LobbyCubit extends Cubit<LobbyState> {
     required String awayTeamName, // Display name of away team
     String? customGameName,
   }) async {
-    emit(state.copyWith(
+    emit(
+      state.copyWith(
         status: LobbyStatus.creatingGame,
         clearError: true,
-        clearCreatedGameId: true,),);
+        clearCreatedGameId: true,
+      ),
+    );
     try {
       String finalGameName;
 

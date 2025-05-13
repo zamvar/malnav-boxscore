@@ -7,7 +7,7 @@ import 'package:flutter/widgets.dart';
 import 'package:score_board/firebase_options.dart';
 
 class AppBlocObserver extends BlocObserver {
-   AppBlocObserver();
+  AppBlocObserver();
 
   @override
   void onChange(BlocBase<dynamic> bloc, Change<dynamic> change) {
@@ -27,7 +27,7 @@ Future<void> bootstrap(FutureOr<Widget> Function() builder) async {
     log(details.exceptionAsString(), stackTrace: details.stack);
   };
 
-  Bloc.observer =  AppBlocObserver();
+  Bloc.observer = AppBlocObserver();
 
   // Add cross-flavor configuration here
   WidgetsFlutterBinding.ensureInitialized();

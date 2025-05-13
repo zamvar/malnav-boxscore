@@ -1,9 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-
 @immutable
 class Team {
-
   const Team({required this.id, required this.name});
   final String id;
   final String name;
@@ -30,7 +28,8 @@ enum LobbyStatus {
 }
 
 @immutable
-class LobbyState { // To pass to the scoreboard route
+class LobbyState {
+  // To pass to the scoreboard route
 
   const LobbyState({
     this.status = LobbyStatus.initial,
@@ -55,7 +54,8 @@ class LobbyState { // To pass to the scoreboard route
       status: status ?? this.status,
       teams: teams ?? this.teams,
       error: clearError ? null : (error ?? this.error),
-      createdGameId: clearCreatedGameId ? null : (createdGameId ?? this.createdGameId),
+      createdGameId:
+          clearCreatedGameId ? null : (createdGameId ?? this.createdGameId),
     );
   }
 

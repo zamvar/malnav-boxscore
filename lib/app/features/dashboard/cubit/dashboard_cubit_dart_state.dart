@@ -35,9 +35,10 @@ class DashboardState {
     return other is DashboardState &&
         other.status == status &&
         other.error == error;
-        // other.dashboardData == dashboardData;
+    // other.dashboardData == dashboardData;
   }
 
   @override
-  int get hashCode => status.hashCode ^ error.hashCode; // ^ dashboardData.hashCode;
+  int get hashCode =>
+      status.hashCode ^ error.hashCode; // ^ dashboardData.hashCode;
 }

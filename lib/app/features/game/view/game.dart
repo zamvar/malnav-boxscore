@@ -123,8 +123,9 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
         id: homeTeamDocSnapshot.id,
         name: homeTeamMap['name'] as String? ?? 'Home Team',
         players: (homeTeamMap['players'] as List<dynamic>? ?? [])
-            .map((playerMap) =>
-                Player.fromMap(playerMap as Map<String, dynamic>))
+            .map(
+              (playerMap) => Player.fromMap(playerMap as Map<String, dynamic>),
+            )
             .toList(),
       );
 
@@ -157,7 +158,9 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
           _currentQuarter =
               _gameData!['currentQuarter'] as int? ?? _currentQuarter;
           _gameStatus = _deriveGameStatus(
-              _gameData!['status'] as String?, _currentQuarter);
+            _gameData!['status'] as String?,
+            _currentQuarter,
+          );
           _isLoading = false;
         });
       }
@@ -175,8 +178,9 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
   String _deriveGameStatus(String? statusFromDb, int quarter) {
     if (statusFromDb == 'completed') return 'Final';
     if (statusFromDb == 'halftime') return 'Halftime';
-    if (statusFromDb != null && statusFromDb.startsWith('live_q'))
+    if (statusFromDb != null && statusFromDb.startsWith('live_q')) {
       return 'Q$quarter';
+    }
     if (statusFromDb == 'scheduled') return 'Scheduled';
     return 'Q$quarter'; // Default
   }
@@ -222,18 +226,23 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                     leading: Text(
                       player.jerseyNumber,
                       style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).primaryColorDark),
+                        fontWeight: FontWeight.bold,
+                        color: Theme.of(context).primaryColorDark,
+                      ),
                     ),
-                    title: Text(player.playerName,
-                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    title: Text(
+                      player.playerName,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                     // subtitle: Text('PTS: X AST: Y REB: Z'), // Placeholder for player stats
                     onTap: () {
                       // Action when player is tapped, e.g., show detailed stats or substitute
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                            content:
-                                Text('${player.playerName} tapped (UI Only)')),
+                          content:
+                              Text('${player.playerName} tapped (UI Only)'),
+                        ),
                       );
                     },
                   );
@@ -299,8 +308,9 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                     '$_homeScore',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor),
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
                   ),
                 ),
                 Padding(
@@ -318,8 +328,9 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                     '$_awayScore',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor),
+                          fontWeight: FontWeight.bold,
+                          color: Theme.of(context).primaryColor,
+                        ),
                   ),
                 ),
               ],
@@ -341,6 +352,7 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
             // Placeholder for Game Controls / Log Entry
             if (_gameData?['status'] != 'completed' &&
                 _gameData?['status'] != 'cancelled')
+              // Place "Add Game Log" button here
               ElevatedButton.icon(
                 icon: const Icon(Icons.add_comment_outlined),
                 label: const Text('Add Game Log'),
@@ -348,12 +360,12 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                   // Navigate to a page or show a dialog to add a new game log entry
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
-                        content: Text('Add Game Log tapped (UI Only)')),
+                      content: Text('Add Game Log tapped (UI Only)'),
+                    ),
                   );
                 },
               ),
-            const Spacer(), // Pushes content to top, actions to bottom
-            // Example: Boxscore per quarter (like the image)
+
             _buildQuarterlyScoresTable(),
             const SizedBox(height: 20),
           ],
@@ -382,20 +394,32 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
             Row(
               children: [
                 const Expanded(
-                    child: Text('Team',
-                        style: TextStyle(fontWeight: FontWeight.bold))),
+                  child: Text(
+                    'Team',
+                    style: TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
                 for (int i = 1; i <= 4; i++)
                   SizedBox(
-                      width: 30,
-                      child: Center(
-                          child: Text('Q$i',
-                              style: const TextStyle(
-                                  fontWeight: FontWeight.bold)))),
-                const SizedBox(
-                    width: 35,
+                    width: 30,
                     child: Center(
-                        child: Text('T',
-                            style: TextStyle(fontWeight: FontWeight.bold)))),
+                      child: Text(
+                        'Q$i',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                const SizedBox(
+                  width: 35,
+                  child: Center(
+                    child: Text(
+                      'T',
+                      style: TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
               ],
             ),
             const Divider(),
@@ -409,27 +433,39 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                     ? scores[i]
                     : 0;
                 total += score;
-                scoreWidgets.add(SizedBox(
+                scoreWidgets.add(
+                  SizedBox(
                     width: 30,
                     child: Center(
-                        child: Text((i < quartersToDisplay ||
+                      child: Text(
+                        (i < quartersToDisplay ||
                                 _gameData?['status'] == 'completed')
                             ? score.toString()
-                            : '-'))));
+                            : '-',
+                      ),
+                    ),
+                  ),
+                );
               }
-              scoreWidgets.add(SizedBox(
+              scoreWidgets.add(
+                SizedBox(
                   width: 35,
                   child: Center(
-                      child: Text(total.toString(),
-                          style:
-                              const TextStyle(fontWeight: FontWeight.bold)))));
+                    child: Text(
+                      total.toString(),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              );
 
               return Padding(
                 padding: const EdgeInsets.symmetric(vertical: 4),
                 child: Row(
                   children: [
                     Expanded(
-                        child: Text(teamName, overflow: TextOverflow.ellipsis)),
+                      child: Text(teamName, overflow: TextOverflow.ellipsis),
+                    ),
                     ...scoreWidgets,
                   ],
                 ),
@@ -461,22 +497,49 @@ class _ScoreboardGamePageState extends State<ScoreboardGamePage> {
                       Text(_error!, style: const TextStyle(color: Colors.red)),
                       const SizedBox(height: 10),
                       ElevatedButton(
-                          onPressed: _fetchGameAndTeamData,
-                          child: const Text('Retry')),
+                        onPressed: _fetchGameAndTeamData,
+                        child: const Text('Retry'),
+                      ),
                     ],
                   ),
                 )
               : (_homeTeam == null || _awayTeam == null)
-                  ? const Center(child: Text('Team data could not be loaded.'))
-                  : Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        _buildPlayerList(
-                            _homeTeam!, true), // Home team on the left
-                        _buildScoreboardCenter(),
-                        _buildPlayerList(
-                            _awayTeam!, false), // Away team on the right
-                      ],
+                  ? const Center(
+                      child: Text('Team data could not be loaded.'),
+                    )
+                  : LayoutBuilder(
+                      builder: (context, constraints) {
+                        if (constraints.maxWidth < 600) {
+                          // Phone viewport
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: <Widget>[
+                              _buildScoreboardCenter(), // Scoreboard at the top
+                              Expanded(
+                                child: Row(
+                                  // Players lists side-by-side
+                                  children: <Widget>[
+                                    _buildPlayerList(_homeTeam!, true),
+                                    _buildPlayerList(_awayTeam!, false)
+                                  ],
+                                ),
+                              ),
+                            ],
+                          );
+                        } else {
+                          // Wider viewport (tablet/desktop)
+                          return Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: <Widget>[
+                              _buildPlayerList(
+                                  _homeTeam!, true), // Home team on the left
+                              _buildScoreboardCenter(), // Scoreboard in the middle
+                              _buildPlayerList(
+                                  _awayTeam!, false), // Away team on the right
+                            ],
+                          );
+                        }
+                      },
                     ),
     );
   }

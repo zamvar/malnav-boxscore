@@ -4,7 +4,6 @@ enum LoginStatus { initial, loading, success, failure }
 
 @immutable
 class LoginState {
-
   // Constructor with a default status of initial
   const LoginState({
     this.status = LoginStatus.initial,
@@ -27,7 +26,6 @@ class LoginState {
     LoginStatus? status,
     String? userId,
     String? token,
-    
     String? role,
     String? username,
     String? error,
@@ -37,7 +35,6 @@ class LoginState {
       status: status ?? this.status,
       userId: userId ?? this.userId,
       token: token ?? this.token,
-
       error: clearError ? null : error ?? this.error,
       role: role ?? this.role,
       username: username ?? this.username,
@@ -54,7 +51,6 @@ class LoginState {
         other.status == status &&
         other.userId == userId &&
         other.token == token &&
-        
         other.role == role &&
         other.username == username &&
         other.error == error;
@@ -65,7 +61,6 @@ class LoginState {
     return status.hashCode ^
         userId.hashCode ^
         token.hashCode ^
-        
         role.hashCode ^
         username.hashCode ^
         error.hashCode;
