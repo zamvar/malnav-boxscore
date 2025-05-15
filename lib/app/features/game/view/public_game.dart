@@ -5,6 +5,7 @@ import 'package:score_board/app/commons/game_log.dart';
 import 'package:score_board/app/commons/models/player_model.dart';
 import 'package:score_board/app/commons/models/team_model.dart';
 import 'package:score_board/app/commons/play_by_play.dart';
+import 'package:score_board/app/commons/score_board.dart';
 import 'package:score_board/app/features/game/cubit/game_cubit.dart';
 import 'package:score_board/app/features/game/cubit/game_state.dart';
 import 'package:score_board/app/features/game/view/game_controls.dart'; // Assuming GameLogEntryModal is here
@@ -132,102 +133,6 @@ class PublicGamePage extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildScoreboardCenter(
-    BuildContext context,
-    GameScoreboardState state,
-  ) {
-    final String homeTeamName = state.homeTeam?.name ?? 'Home';
-    final String awayTeamName = state.awayTeam?.name ?? 'Away';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Expanded(
-                child: Text(
-                  homeTeamName,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  awayTeamName,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Expanded(
-                child: Text(
-                  '${state.homeScore}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '-',
-                  style: Theme.of(context)
-                      .textTheme
-                      .displaySmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  '${state.awayScore}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            state.gameStatusDisplay,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            state.gameClock,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const Spacer(),
-          const SizedBox(height: 20),
-        ],
       ),
     );
   }
@@ -427,7 +332,16 @@ class PublicGamePage extends StatelessWidget {
                             // Scoreboard Center - give it a defined height or let it size intrinsically
                             SizedBox(
                               height: 350, // User's preferred height
-                              child: _buildScoreboardCenter(context, state),
+                              child: ScoreboardCenterDisplay(
+                                homeTeamName: state.homeTeam?.name ?? 'Home',
+                                awayTeamName: state.awayTeam?.name ?? 'Away',
+                                homeScore: state.homeScore,
+                                awayScore: state.awayScore,
+                                gameStatusDisplay: state
+                                    .gameStatusDisplay, // e.g., "Q1 - 10:32", "Halftime", "Final"
+                                gameClock: state
+                                    .gameClock, // e.g., "10:32" (might be part of gameStatusDisplay)
+                              ),
                             ),
                             _buildQuarterlyScoresTable(context, state),
                             Text(
@@ -461,9 +375,17 @@ class PublicGamePage extends StatelessWidget {
                               children: [
                                 Expanded(
                                   flex: 1,
-                                  child: _buildScoreboardCenter(
-                                    context,
-                                    state,
+                                  child: ScoreboardCenterDisplay(
+                                    homeTeamName:
+                                        state.homeTeam?.name ?? 'Home',
+                                    awayTeamName:
+                                        state.awayTeam?.name ?? 'Away',
+                                    homeScore: state.homeScore,
+                                    awayScore: state.awayScore,
+                                    gameStatusDisplay: state
+                                        .gameStatusDisplay, // e.g., "Q1 - 10:32", "Halftime", "Final"
+                                    gameClock: state
+                                        .gameClock, // e.g., "10:32" (might be part of gameStatusDisplay)
                                   ),
                                 ),
                                 _buildQuarterlyScoresTable(context, state),

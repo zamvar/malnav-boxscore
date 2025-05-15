@@ -5,6 +5,7 @@ import 'package:score_board/app/commons/game_log.dart';
 import 'package:score_board/app/commons/models/player_model.dart';
 import 'package:score_board/app/commons/models/team_model.dart';
 import 'package:score_board/app/commons/play_by_play.dart';
+import 'package:score_board/app/commons/score_board.dart';
 import 'package:score_board/app/features/game/cubit/game_cubit.dart';
 import 'package:score_board/app/features/game/cubit/game_state.dart';
 import 'package:score_board/app/features/game/view/game_controls.dart'; // Assuming GameLogEntryModal is here
@@ -33,7 +34,7 @@ class ScoreboardGamePage extends StatelessWidget {
 
   const ScoreboardGamePage({required this.gameId, super.key});
   final String gameId; // Updated constructor
-
+  // MOVE TO THIS TO separate file
   Widget _buildPlayerList(
     BuildContext context,
     TeamDetails team,
@@ -67,10 +68,8 @@ class ScoreboardGamePage extends StatelessWidget {
               padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
               child: Text(
                 team.name,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleMedium
-                    ?.copyWith(fontWeight: FontWeight.bold),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold, color: Colors.white),
                 textAlign: isHomeTeam ? TextAlign.left : TextAlign.right,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -92,7 +91,7 @@ class ScoreboardGamePage extends StatelessWidget {
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: isOnCourt
-                                  ? Theme.of(context).primaryColorDark
+                                  ? Theme.of(context).primaryColorLight
                                   : Colors.grey,
                             ),
                           )
@@ -102,7 +101,7 @@ class ScoreboardGamePage extends StatelessWidget {
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        color: isOnCourt ? Colors.black : Colors.grey.shade600,
+                        color: isOnCourt ? Colors.white : Colors.grey.shade400,
                         fontWeight:
                             isOnCourt ? FontWeight.w500 : FontWeight.normal,
                       ),
@@ -136,118 +135,7 @@ class ScoreboardGamePage extends StatelessWidget {
     );
   }
 
-  Widget _buildScoreboardCenter(
-    BuildContext context,
-    GameScoreboardState state,
-  ) {
-    final String homeTeamName = state.homeTeam?.name ?? 'Home';
-    final String awayTeamName = state.awayTeam?.name ?? 'Away';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Expanded(
-                child: Text(
-                  homeTeamName,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  awayTeamName,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context)
-                      .textTheme
-                      .headlineSmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Expanded(
-                child: Text(
-                  '${state.homeScore}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                ),
-              ),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8),
-                child: Text(
-                  '-',
-                  style: Theme.of(context)
-                      .textTheme
-                      .displaySmall
-                      ?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              Expanded(
-                child: Text(
-                  '${state.awayScore}',
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.displayMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: Theme.of(context).primaryColor,
-                      ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            state.gameStatusDisplay,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
-          const SizedBox(height: 8),
-          Text(
-            state.gameClock,
-            style: Theme.of(context).textTheme.headlineSmall,
-          ),
-          const SizedBox(height: 20),
-          if (state.gamePlayStatus == GamePlayStatus.live ||
-              state.gamePlayStatus == GamePlayStatus.halftime)
-            ElevatedButton.icon(
-              icon: const Icon(Icons.add_comment_outlined),
-              label: const Text('Add Generic Log (Admin)'),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Generic Add Game Log tapped (UI Only - Player specific logs preferred)',
-                    ),
-                  ),
-                );
-              },
-            ),
-          const Spacer(),
-          const SizedBox(height: 20),
-        ],
-      ),
-    );
-  }
-
+  // move this to separate file/widget
   Widget _buildQuarterlyScoresTable(
     BuildContext context,
     GameScoreboardState state,
@@ -444,7 +332,16 @@ class ScoreboardGamePage extends StatelessWidget {
                           // Scoreboard Center - give it a defined height or let it size intrinsically
                           SizedBox(
                             height: 350, // User's preferred height
-                            child: _buildScoreboardCenter(context, state),
+                            child: ScoreboardCenterDisplay(
+                              homeTeamName: state.homeTeam?.name ?? 'Home',
+                              awayTeamName: state.awayTeam?.name ?? 'Away',
+                              homeScore: state.homeScore,
+                              awayScore: state.awayScore,
+                              gameStatusDisplay: state
+                                  .gameStatusDisplay, // e.g., "Q1 - 10:32", "Halftime", "Final"
+                              gameClock: state
+                                  .gameClock, // e.g., "10:32" (might be part of gameStatusDisplay)
+                            ),
                           ),
                           _buildQuarterlyScoresTable(context, state),
                           Text(
@@ -502,9 +399,15 @@ class ScoreboardGamePage extends StatelessWidget {
                             children: [
                               Expanded(
                                 flex: 2,
-                                child: _buildScoreboardCenter(
-                                  context,
-                                  state,
+                                child: ScoreboardCenterDisplay(
+                                  homeTeamName: state.homeTeam?.name ?? 'Home',
+                                  awayTeamName: state.awayTeam?.name ?? 'Away',
+                                  homeScore: state.homeScore,
+                                  awayScore: state.awayScore,
+                                  gameStatusDisplay: state
+                                      .gameStatusDisplay, // e.g., "Q1 - 10:32", "Halftime", "Final"
+                                  gameClock: state
+                                      .gameClock, // e.g., "10:32" (might be part of gameStatusDisplay)
                                 ),
                               ),
                               _buildQuarterlyScoresTable(context, state),
