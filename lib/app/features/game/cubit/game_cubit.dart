@@ -7,22 +7,22 @@ import 'package:score_board/app/commons/models/team_model.dart';
 import 'package:score_board/app/features/game/cubit/game_state.dart';
 
 class GameScoreboardCubit extends Cubit<GameScoreboardState> {
-
   GameScoreboardCubit() : super(const GameScoreboardState());
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   StreamSubscription? _gameSubscription;
-  StreamSubscription? _homeTeamSubscription;
-  StreamSubscription? _awayTeamSubscription;
 
   List<Player> _currentHomePlayersOnCourt = [];
   List<Player> _currentAwayPlayersOnCourt = [];
 
   Future<void> loadGameAndTeams(String gameId) async {
     if (isClosed) return;
-    emit(state.copyWith(
+    emit(
+      state.copyWith(
         gameId: gameId,
         loadingStatus: GameLoadingStatus.loading,
-        clearError: true,),);
+        clearError: true,
+      ),
+    );
     print('GameScoreboardCubit: Loading game and teams for gameId: $gameId');
 
     try {
@@ -30,70 +30,92 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
           await _firestore.collection('games').doc(gameId).get();
       if (!gameDocSnapshot.exists || gameDocSnapshot.data() == null) {
         print('GameScoreboardCubit: Game not found for gameId: $gameId');
-        emit(state.copyWith(
-            loadingStatus: GameLoadingStatus.error, error: 'Game not found.',),);
+        emit(
+          state.copyWith(
+            loadingStatus: GameLoadingStatus.error,
+            error: 'Game not found.',
+          ),
+        );
         return;
       }
       final initialGameData = gameDocSnapshot.data()! as Map<String, dynamic>;
       final String homeTeamId = initialGameData['homeTeamId'] as String;
       final String awayTeamId = initialGameData['awayTeamId'] as String;
       print(
-          'GameScoreboardCubit: HomeTeamId: $homeTeamId, AwayTeamId: $awayTeamId',);
+        'GameScoreboardCubit: HomeTeamId: $homeTeamId, AwayTeamId: $awayTeamId',
+      );
 
       final homeTeamDetails = await _fetchTeamDetails(homeTeamId);
       final awayTeamDetails = await _fetchTeamDetails(awayTeamId);
 
       if (homeTeamDetails == null || awayTeamDetails == null) {
         print(
-            'GameScoreboardCubit: One or both teams not found. Home: ${homeTeamDetails?.name}, Away: ${awayTeamDetails?.name}',);
-        emit(state.copyWith(
+          'GameScoreboardCubit: One or both teams not found. Home: ${homeTeamDetails?.name}, Away: ${awayTeamDetails?.name}',
+        );
+        emit(
+          state.copyWith(
             loadingStatus: GameLoadingStatus.error,
-            error: 'One or both teams not found.',),);
+            error: 'One or both teams not found.',
+          ),
+        );
         return;
       }
       print(
-          'GameScoreboardCubit: Home Team fetched: ${homeTeamDetails.name}, Away Team fetched: ${awayTeamDetails.name}',);
+        'GameScoreboardCubit: Home Team fetched: ${homeTeamDetails.name}, Away Team fetched: ${awayTeamDetails.name}',
+      );
 
       _currentHomePlayersOnCourt = homeTeamDetails.players.take(5).toList();
       _currentAwayPlayersOnCourt = awayTeamDetails.players.take(5).toList();
       print(
-          'GameScoreboardCubit: Initial home on court: ${_currentHomePlayersOnCourt.length}, away on court: ${_currentAwayPlayersOnCourt.length}',);
+        'GameScoreboardCubit: Initial home on court: ${_currentHomePlayersOnCourt.length}, away on court: ${_currentAwayPlayersOnCourt.length}',
+      );
 
       await _processGameData(initialGameData, homeTeamDetails, awayTeamDetails);
 
-      _gameSubscription?.cancel();
-      _gameSubscription = _firestore
-          .collection('games')
-          .doc(gameId)
-          .snapshots()
-          .listen((snapshot) async {
-        if (isClosed) return;
-        if (snapshot.exists && snapshot.data() != null) {
-          print('GameScoreboardCubit: Game document updated (stream).');
-          await _processGameData(
+      await _gameSubscription?.cancel();
+      _gameSubscription =
+          _firestore.collection('games').doc(gameId).snapshots().listen(
+        (snapshot) async {
+          if (isClosed) return;
+          if (snapshot.exists && snapshot.data() != null) {
+            print('GameScoreboardCubit: Game document updated (stream).');
+            await _processGameData(
               snapshot.data()!,
               state.homeTeam ?? homeTeamDetails,
-              state.awayTeam ?? awayTeamDetails,);
-        } else {
-          print(
-              'GameScoreboardCubit: Game document disappeared or became null (stream).',);
-          emit(state.copyWith(
+              state.awayTeam ?? awayTeamDetails,
+            );
+          } else {
+            print(
+              'GameScoreboardCubit: Game document disappeared or became null (stream).',
+            );
+            emit(
+              state.copyWith(
+                loadingStatus: GameLoadingStatus.error,
+                error: 'Game data disappeared.',
+              ),
+            );
+          }
+        },
+        onError: (error) {
+          if (isClosed) return;
+          print('GameScoreboardCubit: Error listening to game updates: $error');
+          emit(
+            state.copyWith(
               loadingStatus: GameLoadingStatus.error,
-              error: 'Game data disappeared.',),);
-        }
-      }, onError: (error) {
-        if (isClosed) return;
-        print('GameScoreboardCubit: Error listening to game updates: $error');
-        emit(state.copyWith(
-            loadingStatus: GameLoadingStatus.error,
-            error: 'Error listening to game updates: $error',),);
-      },);
+              error: 'Error listening to game updates: $error',
+            ),
+          );
+        },
+      );
     } catch (e, s) {
       if (isClosed) return;
       print('GameScoreboardCubit: Failed to load game: $e\nStack: $s');
-      emit(state.copyWith(
+      emit(
+        state.copyWith(
           loadingStatus: GameLoadingStatus.error,
-          error: 'Failed to load game: ${e.toString()}',),);
+          error: 'Failed to load game: ${e.toString()}',
+        ),
+      );
     }
   }
 
@@ -110,8 +132,12 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
         id: teamDocSnapshot.id,
         name: teamMap['name'] as String? ?? 'Unknown Team',
         players: (teamMap['players'] as List<dynamic>? ?? [])
-            .map((playerMap) => Player.fromPlayerMapInTeam(
-                playerMap as Map<String, dynamic>, teamDocSnapshot.id,),)
+            .map(
+              (playerMap) => Player.fromPlayerMapInTeam(
+                playerMap as Map<String, dynamic>,
+                teamDocSnapshot.id,
+              ),
+            )
             .toList(),
       );
     } catch (e) {
@@ -120,11 +146,15 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
     }
   }
 
-  Future<void> _processGameData(Map<String, dynamic> gameData,
-      TeamDetails homeTeam, TeamDetails awayTeam,) async {
+  Future<void> _processGameData(
+    Map<String, dynamic> gameData,
+    TeamDetails homeTeam,
+    TeamDetails awayTeam,
+  ) async {
     if (isClosed) return;
     print(
-        "GameScoreboardCubit: Processing game data. Logs count: ${(gameData['gameLogs'] as List<dynamic>? ?? []).length}",);
+      "GameScoreboardCubit: Processing game data. Logs count: ${(gameData['gameLogs'] as List<dynamic>? ?? []).length}",
+    );
 
     final List<dynamic> gameLogsDynamic =
         gameData['gameLogs'] as List<dynamic>? ?? [];
@@ -181,7 +211,8 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
       }
     }
     print(
-        'GameScoreboardCubit: Calculated Scores - Home: $calculatedHomeScore, Away: $calculatedAwayScore',);
+      'GameScoreboardCubit: Calculated Scores - Home: $calculatedHomeScore, Away: $calculatedAwayScore',
+    );
     print('GameScoreboardCubit: Home Quarter Scores: $homeQuarterScores');
     print('GameScoreboardCubit: Away Quarter Scores: $awayQuarterScores');
 
@@ -193,7 +224,8 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
         if (currentDbHomeScore != calculatedHomeScore ||
             currentDbAwayScore != calculatedAwayScore) {
           print(
-              'GameScoreboardCubit: Updating Firestore scores for game ${state.gameId} to H: $calculatedHomeScore, A: $calculatedAwayScore',);
+            'GameScoreboardCubit: Updating Firestore scores for game ${state.gameId} to H: $calculatedHomeScore, A: $calculatedAwayScore',
+          );
           await _firestore.collection('games').doc(state.gameId).update({
             'homeTeamScore': calculatedHomeScore,
             'awayTeamScore': calculatedAwayScore,
@@ -202,7 +234,8 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
         }
       } catch (e) {
         print(
-            'GameScoreboardCubit: Error updating scores in Firestore for game ${state.gameId}: $e',);
+          'GameScoreboardCubit: Error updating scores in Firestore for game ${state.gameId}: $e',
+        );
       }
     }
 
@@ -250,32 +283,40 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
     final String gameClockFromData =
         gameData['gameClock'] as String? ?? state.gameClock;
     final String gameStatusDisplay = _deriveGameStatusDisplay(
-        statusFromDb, currentQuarterFromData, gameClockFromData,);
+      statusFromDb,
+      currentQuarterFromData,
+      gameClockFromData,
+    );
     final GamePlayStatus gamePlayStatus = _deriveGamePlayStatus(statusFromDb);
 
-    emit(state.copyWith(
-      loadingStatus: GameLoadingStatus.success,
-      gamePlayStatus: gamePlayStatus,
-      gameData: gameData,
-      homeTeam: homeTeam,
-      awayTeam: awayTeam,
-      homeScore: calculatedHomeScore,
-      awayScore: calculatedAwayScore,
-      homeTeamQuarterScores: homeQuarterScores,
-      awayTeamQuarterScores: awayQuarterScores,
-      currentQuarter:
-          currentQuarterFromData, // Use currentQuarter from gameData
-      gameClock: gameClockFromData,
-      gameStatusDisplay: gameStatusDisplay,
-      gameLogs: gameLogs,
-      homePlayersOnCourt: _currentHomePlayersOnCourt,
-      awayPlayersOnCourt: _currentAwayPlayersOnCourt,
-      clearError: true,
-    ),);
+    emit(
+      state.copyWith(
+        loadingStatus: GameLoadingStatus.success,
+        gamePlayStatus: gamePlayStatus,
+        gameData: gameData,
+        homeTeam: homeTeam,
+        awayTeam: awayTeam,
+        homeScore: calculatedHomeScore,
+        awayScore: calculatedAwayScore,
+        homeTeamQuarterScores: homeQuarterScores,
+        awayTeamQuarterScores: awayQuarterScores,
+        currentQuarter:
+            currentQuarterFromData, // Use currentQuarter from gameData
+        gameClock: gameClockFromData,
+        gameStatusDisplay: gameStatusDisplay,
+        gameLogs: gameLogs,
+        homePlayersOnCourt: _currentHomePlayersOnCourt,
+        awayPlayersOnCourt: _currentAwayPlayersOnCourt,
+        clearError: true,
+      ),
+    );
   }
 
   String _deriveGameStatusDisplay(
-      String statusFromDb, int quarter, String clock,) {
+    String statusFromDb,
+    int quarter,
+    String clock,
+  ) {
     switch (statusFromDb) {
       case 'scheduled':
         return 'Scheduled';
@@ -308,7 +349,8 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
   Future<void> addLogEntry(String gameId, Map<String, dynamic> logData) async {
     if (isClosed) return;
     print(
-        'GameScoreboardCubit: Adding log entry to gameId: $gameId, Log: $logData',);
+      'GameScoreboardCubit: Adding log entry to gameId: $gameId, Log: $logData',
+    );
 
     try {
       final Map<String, dynamic> logWithClientTimestamp = {
@@ -350,20 +392,29 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
         'lastUpdated': FieldValue.serverTimestamp(),
       });
       print(
-          'GameScoreboardCubit: Advanced to quarter $nextQuarter for game $gameId',);
+        'GameScoreboardCubit: Advanced to quarter $nextQuarter for game $gameId',
+      );
     } catch (e) {
       if (isClosed) return;
       print('GameScoreboardCubit: Error advancing quarter: $e');
-      emit(state.copyWith(
+      emit(
+        state.copyWith(
           error: 'Failed to advance quarter: $e',
-          loadingStatus: GameLoadingStatus.error,),);
+          loadingStatus: GameLoadingStatus.error,
+        ),
+      );
     }
   }
 
-  Future<void> updateGameStatus(String gameId, String newStatus,
-      {int? newQuarter,}) async {
+  Future<void> updateGameStatus(
+    String gameId,
+    String newStatus, {
+    int? newQuarter,
+  }) async {
     if (isClosed) return;
+
     emit(state.copyWith(loadingStatus: GameLoadingStatus.loading));
+
     try {
       Map<String, dynamic> updateData = {
         'status': newStatus,
@@ -378,13 +429,17 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
 
       await _firestore.collection('games').doc(gameId).update(updateData);
       print(
-          'GameScoreboardCubit: Game status updated to $newStatus for game $gameId',);
+        'GameScoreboardCubit: Game status updated to $newStatus for game $gameId',
+      );
     } catch (e) {
       if (isClosed) return;
       print('GameScoreboardCubit: Error updating game status: $e');
-      emit(state.copyWith(
+      emit(
+        state.copyWith(
           error: 'Failed to update game status: $e',
-          loadingStatus: GameLoadingStatus.error,),);
+          loadingStatus: GameLoadingStatus.error,
+        ),
+      );
     }
   }
 
@@ -392,8 +447,6 @@ class GameScoreboardCubit extends Cubit<GameScoreboardState> {
   Future<void> close() {
     print('GameScoreboardCubit: Closing and cancelling subscriptions.');
     _gameSubscription?.cancel();
-    _homeTeamSubscription?.cancel();
-    _awayTeamSubscription?.cancel();
     return super.close();
   }
 }

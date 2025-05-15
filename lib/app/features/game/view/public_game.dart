@@ -10,8 +10,8 @@ import 'package:score_board/app/features/game/cubit/game_state.dart';
 import 'package:score_board/app/features/game/view/game_controls.dart'; // Assuming GameLogEntryModal is here
 
 @RoutePage()
-class ScoreboardGameRoute extends StatelessWidget {
-  const ScoreboardGameRoute({
+class PublicGameRoute extends StatelessWidget {
+  const PublicGameRoute({
     @PathParam('gameId') required this.gameId,
     super.key,
   });
@@ -21,17 +21,17 @@ class ScoreboardGameRoute extends StatelessWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => GameScoreboardCubit()..loadGameAndTeams(gameId),
-      child: ScoreboardGamePage(
+      child: PublicGamePage(
         gameId: gameId,
       ), // Pass gameId to ScoreboardGamePage
     );
   }
 }
 
-class ScoreboardGamePage extends StatelessWidget {
+class PublicGamePage extends StatelessWidget {
   // Added gameId field
 
-  const ScoreboardGamePage({required this.gameId, super.key});
+  const PublicGamePage({required this.gameId, super.key});
   final String gameId; // Updated constructor
 
   Widget _buildPlayerList(
@@ -225,22 +225,6 @@ class ScoreboardGamePage extends StatelessWidget {
             state.gameClock,
             style: Theme.of(context).textTheme.headlineSmall,
           ),
-          const SizedBox(height: 20),
-          if (state.gamePlayStatus == GamePlayStatus.live ||
-              state.gamePlayStatus == GamePlayStatus.halftime)
-            ElevatedButton.icon(
-              icon: const Icon(Icons.add_comment_outlined),
-              label: const Text('Add Generic Log (Admin)'),
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'Generic Add Game Log tapped (UI Only - Player specific logs preferred)',
-                    ),
-                  ),
-                );
-              },
-            ),
           const Spacer(),
           const SizedBox(height: 20),
         ],
@@ -375,9 +359,6 @@ class ScoreboardGamePage extends StatelessWidget {
                 Text(state.gameData?['name'] as String? ?? 'Live Scoreboard'),
             backgroundColor: Theme.of(context).primaryColorDark,
             foregroundColor: Colors.white,
-            leading: AutoRouter.of(context).canPop()
-                ? const AutoLeadingButton()
-                : null,
           ),
           body: Builder(
             builder: (scaffoldContext) {
@@ -432,107 +413,77 @@ class ScoreboardGamePage extends StatelessWidget {
               }
 
               // Main layout
-              return LayoutBuilder(
-                builder: (context, constraints) {
-                  if (constraints.maxWidth < 650) {
-                    return SingleChildScrollView(
-                      // Added SingleChildScrollView
-                      child: Column(
-                        // mainAxisSize: MainAxisSize.min, // Optional, if content might be shorter than screen
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: <Widget>[
-                          // Scoreboard Center - give it a defined height or let it size intrinsically
-                          SizedBox(
-                            height: 350, // User's preferred height
-                            child: _buildScoreboardCenter(context, state),
-                          ),
-                          _buildQuarterlyScoresTable(context, state),
-                          Text(
-                            'Play by Play',
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleLarge
-                                ?.copyWith(fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(
-                            height: 200,
-                            child: PlayByPlayWidget(
-                              awayTeamId: state.awayTeam!.id,
-                              homeTeamId: state.homeTeam!.id,
-                              awayTeamName: state.awayTeam!.name,
-                              homeTeamName: state.homeTeam!.name,
-                              gameLogs: state.gameLogs,
+              return Padding(
+                padding: const EdgeInsets.all(16),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    if (constraints.maxWidth < 650) {
+                      return SingleChildScrollView(
+                        // Added SingleChildScrollView
+                        child: Column(
+                          // mainAxisSize: MainAxisSize.min, // Optional, if content might be shorter than screen
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: <Widget>[
+                            // Scoreboard Center - give it a defined height or let it size intrinsically
+                            SizedBox(
+                              height: 350, // User's preferred height
+                              child: _buildScoreboardCenter(context, state),
                             ),
-                          ),
-                          const GameControlsWidget(), // You would place your GameControlsWidget here
-
-                          // Player Lists Row - give it a defined height
-                          SizedBox(
-                            height:
-                                300, // Example height, adjust as needed for player lists
-                            child: Row(
-                              children: <Widget>[
-                                _buildPlayerList(
-                                  context,
-                                  state.homeTeam!,
-                                  true,
-                                  state,
+                            _buildQuarterlyScoresTable(context, state),
+                            Text(
+                              'Play by Play',
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
+                            ),
+                            SizedBox(
+                              height: MediaQuery.sizeOf(context).height * .5,
+                              child: PlayByPlayWidget(
+                                awayTeamId: state.awayTeam!.id,
+                                homeTeamId: state.homeTeam!.id,
+                                awayTeamName: state.awayTeam!.name,
+                                homeTeamName: state.homeTeam!.name,
+                                gameLogs: state.gameLogs,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    } else {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: <Widget>[
+                          Expanded(
+                            // Make center column flexible
+                            flex: 2, // As before
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  flex: 1,
+                                  child: _buildScoreboardCenter(
+                                    context,
+                                    state,
+                                  ),
                                 ),
-                                _buildPlayerList(
-                                  context,
-                                  state.awayTeam!,
-                                  false,
-                                  state,
+                                _buildQuarterlyScoresTable(context, state),
+                                Expanded(
+                                  child: PlayByPlayWidget(
+                                    awayTeamId: state.awayTeam!.id,
+                                    homeTeamId: state.homeTeam!.id,
+                                    awayTeamName: state.awayTeam!.name,
+                                    homeTeamName: state.homeTeam!.name,
+                                    gameLogs: state.gameLogs,
+                                  ),
                                 ),
                               ],
                             ),
                           ),
                         ],
-                      ),
-                    );
-                  } else {
-                    return Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: <Widget>[
-                        _buildPlayerList(context, state.homeTeam!, true, state),
-                        Expanded(
-                          // Make center column flexible
-                          flex: 2, // As before
-                          child: Column(
-                            children: [
-                              Expanded(
-                                flex: 2,
-                                child: _buildScoreboardCenter(
-                                  context,
-                                  state,
-                                ),
-                              ),
-                              _buildQuarterlyScoresTable(context, state),
-                              Expanded(
-                                child: PlayByPlayWidget(
-                                  awayTeamId: state.awayTeam!.id,
-                                  homeTeamId: state.homeTeam!.id,
-                                  awayTeamName: state.awayTeam!.name,
-                                  homeTeamName: state.homeTeam!.name,
-                                  gameLogs: state.gameLogs,
-                                ),
-                              ),
-                              // Add GameControlsWid,get here for wider view
-                              const GameControlsWidget(), // Add this
-                              // You might want to add a Spacer or adjust layout if needed
-                            ],
-                          ),
-                        ),
-                        _buildPlayerList(
-                          context,
-                          state.awayTeam!,
-                          false,
-                          state,
-                        ),
-                      ],
-                    );
-                  }
-                },
+                      );
+                    }
+                  },
+                ),
               );
             },
           ),

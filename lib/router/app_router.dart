@@ -34,6 +34,12 @@ class AppRouter extends RootStackRouter {
           initial: false,
           guards: [AuthGuard()],
         ),
+        AutoRoute(
+          path: '/game/:gameId', // UPDATED: Added :gameId as a path parameter
+          page: PublicGameRoute.page,
+          initial: false,
+          guards: const [],
+        ),
         // AutoRoute(
         //   path: '/home',
         //   page: HomeRoute.page,

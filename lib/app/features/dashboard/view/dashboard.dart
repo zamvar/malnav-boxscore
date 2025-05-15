@@ -1,13 +1,16 @@
 import 'package:auto_route/auto_route.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:intl/intl.dart'; // For date formatting
+import 'package:score_board/app/features/dashboard/cubit/dashboard_cubit.dart';
+// Import your updated Cubit and State
+// Ensure these paths are correct for your project structure
 
-// Assuming your LoginRoute is here for navigation after logout
-// Adjust path as per your project structure
-// You might not need LoginRoute if logout functionality is fully removed for UI-only.
-// For now, I'll keep it for the logout button's navigation intent.
+import 'package:score_board/app/features/dashboard/cubit/dashboard_state.dart';
+// For logout navigation and constants/routes
 import 'package:score_board/router/app_router.gr.dart';
-import 'package:score_board/utils/constants.dart';
+// AppConstants.userUsernameKey is used within the DashboardCubit, no need to import here
+// if it's solely for the cubit's internal use with secure_storage.
 
 @RoutePage()
 class DashboardRoute extends StatelessWidget {
@@ -15,161 +18,201 @@ class DashboardRoute extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // No BlocProvider needed as this is UI-only
-    return const DashboardPage();
+    return BlocProvider(
+      create: (context) => DashboardCubit()
+        ..loadDashboardData(), // Load data when Cubit is created
+      child: const DashboardPage(),
+    );
   }
 }
 
-class DashboardPage extends StatefulWidget {
+class DashboardPage extends StatelessWidget {
   const DashboardPage({super.key});
 
-  @override
-  State<DashboardPage> createState() => _DashboardPageState();
-}
+  // Logout logic should ideally be in an AuthCubit and triggered globally.
+  // This is a simplified version for UI demonstration.
+  Future<void> _handleLogout(BuildContext context) async {
+    // If DashboardCubit needs to clear its specific state on logout:
+    // context.read<DashboardCubit>().clearDashboardDataOnLogout();
 
-class _DashboardPageState extends State<DashboardPage> {
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
-  String? _username;
-  @override
-  void initState() {
-    super.initState();
-    _loadUsername();
-  }
-
-  Future<void> _loadUsername() async {
-    final storedUsername =
-        await _secureStorage.read(key: AppConstants.userUsernameKey);
-    if (mounted) {
-      setState(() {
-        _username = storedUsername;
-      });
-    }
+    // Actual sign-out and navigation (ideally from AuthCubit)
+    // For this example, direct navigation:
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Logging out...'),
+        backgroundColor: Colors.orangeAccent,
+      ),
+    );
+    // Ensure LoginRoute is correctly defined in your AppRouter
+    AutoRouter.of(context).replaceAll([const LoginRoute()]);
   }
 
   @override
   Widget build(BuildContext context) {
-    // Static mock data for ongoing games
-    final List<String> mockOngoingGames = [
-      'Game 1: Team Alpha vs Team Bravo',
-      'Game 2: Phoenixes vs Griffins',
-      'Game 3: Titans Challenge Cup Final',
-    ];
+    return BlocBuilder<DashboardCubit, DashboardState>(
+      builder: (context, state) {
+        final String appBarTitle =
+            state.username != null && state.username!.isNotEmpty
+                ? "${state.username}'s Scoreboard"
+                : 'My Scoreboard';
 
-    // Static mock data for game history
-    final List<String> mockGameHistory = [
-      'Yesterday: Team Alpha vs Team Charlie (5-2)',
-      'May 7: Phoenixes vs Serpents (3-3)',
-      'May 5: Titans vs Olympians (1-0)',
-      'May 3: Knights vs Warriors (4-1)',
-      'May 1: Dragons vs Elementals (2-2)',
-    ];
-    final String appBarTitle = _username != null && _username!.isNotEmpty
-        ? "$_username's Scoreboard"
-        : 'My Scoreboard';
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(appBarTitle),
-        backgroundColor: Colors.indigo[800],
-        foregroundColor: Colors.white,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            tooltip: 'Logout',
-            onPressed: () {
-              // Placeholder for logout action
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text(
-                    'Logout action triggered (UI Only). Navigating to Login...',
-                  ),
-                ),
-              );
-              AutoRouter.of(context).replaceAll([const LoginRoute()]);
-            },
+        return Scaffold(
+          appBar: AppBar(
+            title: Text(appBarTitle),
+            backgroundColor: Colors.indigo[800],
+            foregroundColor: Colors.white,
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.logout),
+                tooltip: 'Logout',
+                onPressed: () => _handleLogout(context),
+              ),
+            ],
           ),
-        ],
-      ),
-      body: RefreshIndicator(
-        onRefresh: () async {
-          // Placeholder for refresh action
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Dashboard refreshed (UI Only)')),
-          );
-          await Future.delayed(const Duration(seconds: 1)); // Simulate a delay
-        },
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: <Widget>[
-            // Welcome Message (Static)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 24),
-              child: Text(
-                'Welcome back!',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.indigo[700],
+          body: RefreshIndicator(
+            onRefresh: () async {
+              // Trigger data reload from the Cubit
+              await context.read<DashboardCubit>().loadDashboardData();
+            },
+            child: Builder(
+                // Use Builder to get a new context for ScaffoldMessenger if needed inside ListView
+                builder: (BuildContext listContext) {
+              // Show loading indicator only if it's the initial load (no data yet)
+              if (state.status == DashboardStatus.loading &&
+                  state.ongoingGames.isEmpty &&
+                  state.gameHistory.isEmpty &&
+                  state.username == null) {
+                return const Center(child: CircularProgressIndicator());
+              }
+              // Show error message if initial load failed
+              if (state.status == DashboardStatus.failure &&
+                  state.ongoingGames.isEmpty &&
+                  state.gameHistory.isEmpty &&
+                  state.username == null) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(state.error ?? "Failed to load dashboard.",
+                            style: const TextStyle(color: Colors.red)),
+                        const SizedBox(height: 10),
+                        ElevatedButton(
+                          onPressed: () => context
+                              .read<DashboardCubit>()
+                              .loadDashboardData(),
+                          child: const Text("Retry"),
+                        )
+                      ],
                     ),
-              ),
-            ),
-
-            // Start a New Game Button
-            Padding(
-              padding: const EdgeInsets.only(bottom: 20),
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.add_circle_outline, size: 28),
-                label: const Text('Start a New Game'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade700,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  textStyle: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 5,
-                ),
-                onPressed: () {
-                  context.router.push(const GameLobbyRoute());
-                  // Placeholder for navigation or action
-                  // AutoRouter.of(context).push(const StartGameRoute());
-                },
-              ),
-            ),
-
-            // Manage Teams Card
-            _buildDashboardCard(
-              context,
-              icon: Icons.group_work_outlined,
-              title: 'Manage Teams',
-              subtitle: 'Create, edit, and view your teams.',
-              color: Colors.teal.shade600,
-              onTap: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Navigate to Manage Teams (UI Only)'),
                   ),
                 );
-                // AutoRouter.of(context).push(const ManageTeamsRoute());
-              },
-            ),
-            const SizedBox(height: 16),
+              }
 
-            // Ongoing Games Card (using static mock data)
-            _buildOngoingGamesCard(context, mockOngoingGames),
-
-            const SizedBox(height: 16),
-            // Game History Card (updated)
-            _buildGameHistoryCard(context, mockGameHistory),
-          ],
-        ),
-      ),
+              // Main content ListView
+              return ListView(
+                padding: const EdgeInsets.all(16),
+                children: <Widget>[
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 24),
+                    child: Text(
+                      state.username != null && state.username!.isNotEmpty
+                          ? 'Welcome back, ${state.username}!'
+                          : 'Welcome back!',
+                      style:
+                          Theme.of(context).textTheme.headlineMedium?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Colors.indigo[700],
+                              ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 20),
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add_circle_outline, size: 28),
+                      label: const Text('Start a New Game'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.orange.shade700,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        textStyle: const TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 5,
+                      ),
+                      onPressed: () {
+                        // Ensure GameLobbyRoute is defined in your AppRouter
+                        AutoRouter.of(context).push(const GameLobbyRoute());
+                      },
+                    ),
+                  ),
+                  _buildDashboardCard(
+                    // Generic card for actions like "Manage Teams"
+                    context,
+                    icon: Icons.group_work_outlined,
+                    title: 'Manage Teams',
+                    subtitle: 'Create, edit, and view your teams.',
+                    color: Colors.teal.shade600,
+                    onTap: () {
+                      ScaffoldMessenger.of(listContext).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'Navigate to Manage Teams (Not Implemented)')),
+                      );
+                      // Example: AutoRouter.of(context).push(const ManageTeamsRoute());
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  // Use state.ongoingGames and state.gameHistory from the Cubit
+                  _buildGameListCard(
+                    context: context,
+                    title: 'Ongoing Games',
+                    titleIcon: Icons.sports_basketball_outlined,
+                    titleIconColor: Colors.lightBlue.shade700,
+                    games: state.ongoingGames, // From Cubit state
+                    emptyListMessage: 'No ongoing games right now.',
+                    onViewAllTap: () {
+                      ScaffoldMessenger.of(listContext).showSnackBar(
+                        const SnackBar(
+                            content: Text(
+                                'View All Ongoing Games (Not Implemented)')),
+                      );
+                      // Example: AutoRouter.of(context).push(const AllOngoingGamesRoute());
+                    },
+                    scaffoldListContext: listContext,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildGameListCard(
+                    context: context,
+                    title: 'Game History',
+                    titleIcon: Icons.history_edu_outlined,
+                    titleIconColor: Colors.deepPurple.shade700,
+                    games: state.gameHistory, // From Cubit state
+                    emptyListMessage: 'No game history available yet.',
+                    onViewAllTap: () {
+                      ScaffoldMessenger.of(listContext).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'View All Game History (Not Implemented)',
+                          ),
+                        ),
+                      );
+                      // Example: AutoRouter.of(context).push(const AllGameHistoryRoute());
+                    },
+                    scaffoldListContext: listContext,
+                  ),
+                ],
+              );
+            }),
+          ),
+        );
+      },
     );
   }
 
+  // Generic card for static actions like "Manage Teams"
   Widget _buildDashboardCard(
     BuildContext context, {
     required IconData icon,
@@ -232,7 +275,17 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  Widget _buildOngoingGamesCard(BuildContext context, List<String> games) {
+  // Generic card builder for lists of games (Ongoing or History)
+  Widget _buildGameListCard({
+    required BuildContext context,
+    required String title,
+    required IconData titleIcon,
+    required Color titleIconColor,
+    required List<GameOverview> games, // Takes List<GameOverview>
+    required String emptyListMessage,
+    required VoidCallback onViewAllTap,
+    required BuildContext scaffoldListContext,
+  }) {
     return Card(
       elevation: 3,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -246,18 +299,14 @@ class _DashboardPageState extends State<DashboardPage> {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: Colors.lightBlue.shade600.withOpacity(0.15),
+                    color: titleIconColor.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(
-                    Icons.sports_soccer_outlined,
-                    size: 30,
-                    color: Colors.lightBlue.shade700,
-                  ),
+                  child: Icon(titleIcon, size: 30, color: titleIconColor),
                 ),
                 const SizedBox(width: 16),
                 Text(
-                  'Ongoing Games',
+                  title,
                   style: Theme.of(context)
                       .textTheme
                       .titleLarge
@@ -271,7 +320,7 @@ class _DashboardPageState extends State<DashboardPage> {
                 padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Center(
                   child: Text(
-                    'No ongoing games right now.',
+                    emptyListMessage,
                     style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
                   ),
                 ),
@@ -280,41 +329,40 @@ class _DashboardPageState extends State<DashboardPage> {
               ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: games.length,
+                itemCount: title == 'Game History'
+                    ? (games.length > 3 ? 3 : games.length)
+                    : games.length,
                 itemBuilder: (context, index) {
+                  final game = games[index];
+                  final formattedTime = game.scheduledTime != null
+                      ? DateFormat('MMM d, yyyy - hh:mm a')
+                          .format(game.scheduledTime!.toDate().toLocal())
+                      : 'Date N/A';
                   return ListTile(
-                    leading: Icon(
-                      Icons.circle,
-                      size: 10,
-                      color: Colors.green.shade600,
+                    title: Text(
+                      '${game.homeTeamName} ${game.homeScore} vs ${game.awayTeamName} ${game.awayScore}',
                     ),
-                    title: Text(games[index]),
+                    subtitle: Text(
+                        'Status: ${game.status.displayValue} ($formattedTime)'),
                     trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                     onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('Tapped on ${games[index]} (UI Only)'),
-                        ),
-                      );
-                      // AutoRouter.of(context).push(GameDetailsRoute(gameId: games[index]));
+                      // Navigate to game details
+                      navigateToGame(context, game, title);
                     },
                   );
                 },
               ),
-            if (games.isNotEmpty)
+            if ((title == 'Game History' && games.length > 3) ||
+                (title == 'Ongoing Games' &&
+                    games.isNotEmpty &&
+                    games.length >
+                        3)) // Show "View All" if more than 3 for ongoing too
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: TextButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('View All Ongoing Games (UI Only)'),
-                        ),
-                      );
-                      // AutoRouter.of(context).push(const AllOngoingGamesRoute());
-                    },
+                    onPressed: onViewAllTap,
                     child: Text(
                       'View All',
                       style: TextStyle(color: Colors.indigo[700]),
@@ -328,110 +376,14 @@ class _DashboardPageState extends State<DashboardPage> {
     );
   }
 
-  // New Widget for Game History Card
-  Widget _buildGameHistoryCard(BuildContext context, List<String> gameHistory) {
-    // Determine how many items to show initially
-    final int itemsToShow = gameHistory.length > 3 ? 3 : gameHistory.length;
-    final bool showViewAllButton = gameHistory.length > 3;
-
-    return Card(
-      elevation: 3,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(10),
-                  decoration: BoxDecoration(
-                    color: Colors.deepPurple.shade600.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    Icons.history_edu_outlined,
-                    size: 30,
-                    color: Colors.deepPurple.shade700,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Text(
-                  'Game History',
-                  style: Theme.of(context)
-                      .textTheme
-                      .titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w600, fontSize: 18),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            if (gameHistory.isEmpty)
-              Padding(
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                child: Center(
-                  child: Text(
-                    'No game history available yet.',
-                    style: TextStyle(color: Colors.grey.shade600, fontSize: 15),
-                  ),
-                ),
-              )
-            else
-              ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: itemsToShow, // Show only the first few items
-                itemBuilder: (context, index) {
-                  return ListTile(
-                    leading: Icon(
-                      Icons.check_circle_outline,
-                      size: 20,
-                      color: Colors.grey.shade500,
-                    ),
-                    title: Text(gameHistory[index]),
-                    trailing: const Icon(
-                      Icons.arrow_forward_ios,
-                      size: 16,
-                      color: Colors.grey,
-                    ),
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Tapped on ${gameHistory[index]} (UI Only)',
-                          ),
-                        ),
-                      );
-                      // AutoRouter.of(context).push(GameDetailsRoute(gameId: gameHistory[index]));
-                    },
-                  );
-                },
-              ),
-            if (showViewAllButton)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('View All Game History (UI Only)'),
-                        ),
-                      );
-                      // AutoRouter.of(context).push(const AllGameHistoryRoute());
-                    },
-                    child: Text(
-                      'View All',
-                      style: TextStyle(color: Colors.indigo[700]),
-                    ),
-                  ),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+  void navigateToGame(BuildContext context, GameOverview game, String title) {
+    // Ensure ScoreboardGameRoute is defined and imported from your router
+    if (title == 'Game History') {
+      AutoRouter.of(context).push(PublicGameRoute(gameId: game.id));
+    } else {
+      AutoRouter.of(context).push(ScoreboardGameRoute(gameId: game.id));
+    }
+    // AutoRouter.of(context)
+    //     .push(ScoreboardGameRoute(gameId: game.id));
   }
 }
